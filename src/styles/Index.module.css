@@ -1,0 +1,70 @@
+.graph_nav {
+}
+
+.site_nav {
+    display: flex;
+    margin: 0;
+    list-style-type: none;
+    font-weight: 600;
+}
+
+.site_nav li {
+    margin-top: 0; /* Turn off owl */
+}
+
+.site_nav > li + li {
+    /* When li after another li */
+    margin-left: 1.5em;
+}
+
+.site_nav li input {
+    border: 1px solid;
+    border-radius: 4px;
+    padding: 0.5em;
+    outline: none;
+}
+
+.site_nav li select {
+    border: 1px solid;
+    border-radius: 4px;
+    padding: 0.4em;
+    outline: none;
+}
+
+.site_nav li button {
+    margin: 0 1em;
+    border: none;
+    border-radius: 4px;
+    padding: 0.55em;
+    cursor: pointer;
+    background-color: #f04438;
+}
+
+.site_nav li button:hover {
+    background-color: #ff4455;
+}
+
+.site_nav li button:disabled {
+    background-color: #5a3d43;
+    cursor: default;
+}
+
+.graph_svg {
+    display: flex;
+    margin: 0 1em;
+}
+
+@media (max-width: 768px) {
+    .site_nav {
+        flex-direction: column;
+    }
+
+    .site_nav li {
+        margin: 0.4em 0; /* Turn off owl */
+        padding: 0;
+    }
+
+    .site_nav > li + li {
+        margin-left: 0;
+    }
+}

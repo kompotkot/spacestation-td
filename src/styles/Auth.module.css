@@ -1,0 +1,63 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.popup {
+    border: 1px solid;
+    border-radius: 4px;
+    padding: 24px;
+    width: 360px;
+}
+
+.header {
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid;
+    padding-bottom: 8px;
+}
+
+.inputGroup {
+    margin-bottom: 16px;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid;
+    border-radius: 3px;
+    outline: none;
+}
+
+.button {
+    background-color: #f04438;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.button:hover {
+    background-color: #ff4455;
+}
+
+.button:disabled {
+    cursor: wait;
+    background-color: #5a3d43;
+}
+
+.error {
+    color: #f04438;
+    margin-top: 8px;
+    font-size: 14px;
+}

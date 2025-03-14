@@ -1,0 +1,50 @@
+.container {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+.site_nav {
+    display: flex;
+    margin: 0;
+    list-style-type: none;
+    font-weight: 500;
+}
+
+.site_nav > .nav_first {
+    flex: 3;
+    padding: 0.5em;
+    display: flex;
+}
+
+.site_nav > .nav_first p {
+    margin: 0;
+    margin-top: auto;
+}
+
+.site_nav > .nav_theme {
+    padding-top: 0.9em;
+    width: 4em;
+}
+
+.site_nav li {
+    margin-top: 0; /* Turn off owl */
+}
+
+.site_nav img {
+    margin: 0;
+    max-height: 1.4em;
+    cursor: pointer;
+}
+
+.site_nav > li + li {
+    /* When li after another li */
+    margin-left: 1.5em;
+}
+
+/* Main */
+.main {
+    flex: 1; /* Because of flex-direction: column it expand on all height of screen */
+}

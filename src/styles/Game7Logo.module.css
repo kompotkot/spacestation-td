@@ -1,0 +1,30 @@
+.logoContainer {
+    cursor: pointer;
+    display: flex;
+    padding: 0 5px 0 24px;
+    align-items: center;
+    align-self: stretch;
+}
+
+@media (max-width: 1199px) {
+    .container {
+        display: flex;
+        flex-direction: column;
+        min-width: 100vw;
+    }
+
+    .logoContainer {
+        margin-top: 0;
+        padding: 0;
+    }
+}
+
+.logoWrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.iconSvg {
+    margin: 0;
+}
