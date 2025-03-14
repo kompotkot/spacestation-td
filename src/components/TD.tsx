@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useTheme } from "../context/ThemeContext";
 
-import styles from "../styles/TD.module.css";
+import { useGame } from "../context/GameContext";
 
-const TD: React.FC = () => {
+interface TDProps {
+    setGameLoaded: (loaded: boolean) => void;
+    gameStarted: boolean;
+}
+
+const TD: React.FC<TDProps> = ({ setGameLoaded, gameStarted }) => {
     const gameRef = useRef<HTMLDivElement>(null);
-    const [gameLoaded, setGameLoaded] = useState(false);
-    const { backgroundMainColor, textMainColor } = useTheme();
+    const { setGameInstance } = useGame();
+    // const { backgroundMainColor, textMainColor } = useTheme();
 
     // Game Phaser initializer
     // Import libraries only on the client side
@@ -42,9 +46,9 @@ const TD: React.FC = () => {
             };
 
             // Convert hex color to number format for Phaser
-            const bgColor = backgroundMainColor.startsWith("#")
-                ? parseInt(backgroundMainColor.replace("#", "0x"), 16)
-                : backgroundMainColor;
+            // const bgColor = backgroundMainColor.startsWith("#")
+            //     ? parseInt(backgroundMainColor.replace("#", "0x"), 16)
+            //     : backgroundMainColor;
 
             // FIX: Updated game dimensions to ensure the full canvas is visible
             // We ensure the width is a multiple of gridSize for proper alignment
@@ -63,7 +67,6 @@ const TD: React.FC = () => {
                 width: gameWidth,
                 height: gameHeight,
                 parent: gameRef.current,
-                backgroundColor: bgColor,
                 scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene],
                 physics: {
                     default: "arcade", // TODO: Migrate to "matter"
@@ -85,6 +88,8 @@ const TD: React.FC = () => {
             // Set loaded state once the game is initialized
             setGameLoaded(true);
 
+            setGameInstance(game);
+
             // Clean up on unmount
             return () => {
                 game.destroy(true);
@@ -98,43 +103,20 @@ const TD: React.FC = () => {
     // Initialize Phaser on component mount
     useEffect(() => {
         if (typeof window === "undefined" || !gameRef.current) return;
-        
-        GamePhaserInit();
-    }, []);
+
+        if (gameStarted) {
+            GamePhaserInit();
+        }
+    }, [gameStarted]);
 
     return (
         <div
-          className={styles.game_container}
+            ref={gameRef}
             style={{
-                width: "100%", // Increased width to ensure right side isn't cut off
+                width: "100%",
                 height: "600px",
-                border: "1px solid purple",
             }}
-        >
-            <div
-                ref={gameRef}
-                id="phaser-game"
-                style={{
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: backgroundMainColor,
-                }}
-            />
-
-            {!gameLoaded && (
-                <div
-                    style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        color: textMainColor,
-                    }}
-                >
-                    Loading...
-                </div>
-            )}
-        </div>
+        />
     );
 };
 

@@ -35,9 +35,9 @@ const PhaserGame: React.FC<PhaserGameProps> = ({
         };
 
         // Convert hex color to number format for Phaser if it's a hex string
-        const bgColor = backgroundColor.startsWith("#")
-            ? parseInt(backgroundColor.replace("#", "0x"), 16)
-            : backgroundColor;
+        // const bgColor = backgroundColor.startsWith("#")
+        //     ? parseInt(backgroundColor.replace("#", "0x"), 16)
+        //     : backgroundColor;
 
         // Create a new Phaser game instance
         const config: Phaser.Types.Core.GameConfig = {
@@ -45,7 +45,7 @@ const PhaserGame: React.FC<PhaserGameProps> = ({
             width: 800,
             height: 600,
             parent: parentElement.current,
-            backgroundColor: bgColor,
+            // backgroundColor: bgColor,
             // Pass the scene classes directly, not as an array property
             scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene],
             physics: {

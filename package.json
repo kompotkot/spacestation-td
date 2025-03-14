@@ -11,12 +11,19 @@
         "format": "prettier --write src/*"
     },
     "dependencies": {
+        "@reown/appkit": "^1.7.0",
+        "@reown/appkit-adapter-wagmi": "^1.7.0",
+        "@reservoir0x/relay-kit-ui": "^2.7.13",
+        "@tanstack/react-query": "^5.68.0",
         "axios": "^1.7.9",
         "next": "^15.1.7",
         "phaser": "^3.88.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-query": "^3.39.3"
+        "react-query": "^3.39.3",
+        "three": "^0.174.0",
+        "viem": "^2.23.10",
+        "wagmi": "^2.14.13"
     },
     "devDependencies": {
         "@types/node": "^18.19.76",
@@ -27,6 +34,6 @@
         "eslint-config-next": "^13.5.8",
         "prettier": "^2.8.8",
         "styled-components": "^5.3.11",
-        "typescript": "^4.9.5"
+        "typescript": "^5.0.4"
     }
 }

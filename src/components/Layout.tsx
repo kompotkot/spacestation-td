@@ -1,24 +1,26 @@
 import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
+import { useAppKitAccount, useDisconnect } from "@reown/appkit/react";
 
+import { useGame } from "../context/GameContext";
 import { useTheme } from "../context/ThemeContext";
-import Game7Logo from "./Game7Logo";
 import styles from "../styles/Layout.module.css";
 
-const Layout = ({ children, title = "Tower Defense" }) => {
-    const router = useRouter();
+// Dynamically import the Skybox component with no SSR
+const Skybox = dynamic(() => import("./Skybox"), { ssr: false });
 
-    const {
-        lightTheme,
-        switchTheme,
-        textMainColor,
-        textOppositeColor,
-        backgroundMainColor,
-        backgroundShadowColor,
-        nodeFetched,
-        nodeUnknown,
-    } = useTheme();
+const Layout = ({ children, title = "Tower Defense" }) => {
+    const { address, isConnected } = useAppKitAccount();
+    const { disconnect } = useDisconnect();
+    const { textMainColor, backgroundMainColor } = useTheme();
+    const { destroyGame } = useGame();
+
+    const handleLogout = () => {
+        // Destroy the game first
+        destroyGame();
+        // Then disconnect the wallet
+        disconnect();
+    };
 
     return (
         <>
@@ -31,42 +33,42 @@ const Layout = ({ children, title = "Tower Defense" }) => {
                     href="https://fonts.googleapis.com/css?family=Nunito"
                 />
             </Head>
+
+            <Skybox />
+
             <div
                 className={styles.container}
                 style={{
                     color: textMainColor,
-                    backgroundColor: backgroundMainColor,
-
-                    border: "1px solid red",
+                    backgroundColor: "transparent", // Transparent to show the skybox
                 }}
             >
                 <header>
                     <nav>
-                        <ul
-                            className={styles.site_nav}
-                            style={{ backgroundColor: backgroundShadowColor, border: "1px solid yellow", }}
-                        >
-                            <li className={styles.nav_first} style={{ border: "1px solid green", }}>
-                                <Link href="/">
-                                    <Game7Logo />
-                                </Link>
-                            </li>
-                            <li className={styles.nav_theme} style={{ border: "1px solid green", }}> 
-                                <img
-                                    className={styles.icon}
-                                    onClick={switchTheme}
-                                    src={
-                                        lightTheme
-                                            ? "sun-dark.svg"
-                                            : "moon-light.svg"
-                                    }
-                                    alt="Theme Switch"
-                                />
-                            </li>
+                        <ul className={styles.site_nav}>
+                            <li className={styles.nav_first}></li>
+                            {isConnected && address && (
+                                <li className={styles.nav_account_info}>
+                                    <span>{`${address.substring(
+                                        0,
+                                        6
+                                    )}...${address.substring(
+                                        address.length - 4
+                                    )}`}</span>
+                                    <img
+                                        className={styles.icon}
+                                        onClick={() => {
+                                            handleLogout();
+                                        }}
+                                        src="logout.svg"
+                                        alt="Logout"
+                                    />
+                                </li>
+                            )}
                         </ul>
                     </nav>
                 </header>
-                <main className={styles.main} style={{ border: "1px solid green", }}>{children}</main>
+                <main className={styles.main}>{children}</main>
             </div>
         </>
     );

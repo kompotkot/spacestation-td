@@ -50,7 +50,7 @@ export class PreloadScene extends Phaser.Scene {
 
         // Load UI elements
         this.load.image("button", "/assets/ui/button.png"); // ???
-        this.load.image("panel", "/assets/ui/panel.png");   // ???
+        this.load.image("panel", "/assets/ui/panel.png"); // ???
 
         this.load.image("icon_credits", "/assets/ui/credits.png");
         this.load.image("icon_health", "/assets/ui/health.png");

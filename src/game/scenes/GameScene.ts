@@ -764,7 +764,7 @@ export class GameScene extends Phaser.Scene {
             {
                 font: "bold 30px Arial",
                 color: "#ffffff",
-                backgroundColor: "#660000",
+                // backgroundColor: "#660000",
                 padding: {
                     left: 20,
                     right: 20,
