@@ -5,9 +5,16 @@ import { useGame } from "../context/GameContext";
 interface TDProps {
     setGameLoaded: (loaded: boolean) => void;
     gameStarted: boolean;
+    width: number;
+    height: number;
 }
 
-const TD: React.FC<TDProps> = ({ setGameLoaded, gameStarted }) => {
+const TD: React.FC<TDProps> = ({
+    setGameLoaded,
+    gameStarted,
+    width,
+    height,
+}) => {
     const gameRef = useRef<HTMLDivElement>(null);
     const { setGameInstance } = useGame();
     // const { backgroundMainColor, textMainColor } = useTheme();
@@ -35,16 +42,6 @@ const TD: React.FC<TDProps> = ({ setGameLoaded, gameStarted }) => {
             const GameScene = GameSceneModule.GameScene;
             const UIScene = UISceneModule.UIScene;
 
-            // Initialize global game settings
-            window.gameSettings = {
-                gridSize: 64,
-                credits: 100,
-                waveCount: 1,
-                enemyHealth: 100,
-                enemySpeed: 100,
-                difficultyModifier: 1.2,
-            };
-
             // Convert hex color to number format for Phaser
             // const bgColor = backgroundMainColor.startsWith("#")
             //     ? parseInt(backgroundMainColor.replace("#", "0x"), 16)
@@ -68,6 +65,7 @@ const TD: React.FC<TDProps> = ({ setGameLoaded, gameStarted }) => {
                 height: gameHeight,
                 parent: gameRef.current,
                 scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene],
+                transparent: true,
                 physics: {
                     default: "arcade", // TODO: Migrate to "matter"
                     arcade: {
@@ -113,8 +111,9 @@ const TD: React.FC<TDProps> = ({ setGameLoaded, gameStarted }) => {
         <div
             ref={gameRef}
             style={{
-                width: "100%",
-                height: "600px",
+                width: width,
+                height: height,
+                // border: "1px solid red",
             }}
         />
     );

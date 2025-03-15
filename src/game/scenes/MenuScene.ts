@@ -30,6 +30,20 @@ export class MenuScene extends Phaser.Scene {
         );
         subtitle.setOrigin(0.5);
 
+        // Add wallet address display
+        const walletAddress = window.gameSettings?.address || "Not Connected";
+        const walletText = this.add.text(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            `Wallet: ${walletAddress}`,
+            {
+                font: "18px Nunito",
+                color: "#ffcc00",
+                align: "center",
+            }
+        );
+        walletText.setOrigin(0.5);
+
         // Add start button
         const startButton = this.add.rectangle(
             this.cameras.main.width / 2,

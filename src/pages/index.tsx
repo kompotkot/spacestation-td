@@ -4,9 +4,12 @@ import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
 import { useTheme } from "../context/ThemeContext";
 import Layout from "../components/Layout";
 import TD from "../components/TD";
+import useGraphWindowDimensions from "../hooks/useGraphWindowDimensions";
 import styles from "../styles/Index.module.css";
 
 const Index = () => {
+    const { width, height } = useGraphWindowDimensions();
+
     const [gameLoaded, setGameLoaded] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
     const { backgroundMainColor, textMainColor } = useTheme();
@@ -53,7 +56,12 @@ const Index = () => {
                     color: textMainColor,
                 }}
             >
-                <TD setGameLoaded={setGameLoaded} gameStarted={gameStarted} />
+                <TD
+                    setGameLoaded={setGameLoaded}
+                    gameStarted={gameStarted}
+                    width={width}
+                    height={height}
+                />
 
                 {!gameStarted ? (
                     <div
@@ -87,7 +95,7 @@ const Index = () => {
                                 left: "50%",
                                 transform: "translate(-50%, -50%)",
                                 color: textMainColor,
-                                border: "1px solid yellow",
+                                // border: "1px solid yellow",
                             }}
                         >
                             Loading...

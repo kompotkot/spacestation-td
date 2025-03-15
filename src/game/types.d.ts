@@ -9,6 +9,7 @@ declare global {
             enemyHealth: number;
             enemySpeed: number;
             difficultyModifier: number;
+            address: string;
         };
     }
 }
