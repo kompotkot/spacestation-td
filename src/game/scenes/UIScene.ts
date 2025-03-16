@@ -26,17 +26,15 @@ export class UIScene extends Phaser.Scene {
     init() {
         // UI state
         this.credits = window.gameSettings.credits;
-        this.health = 100;
+        this.health = window.gameSettings.health;
         this.wave = window.gameSettings.waveCount;
         this.selectedTower = null;
         this.towerButtons = [];
     }
 
     create() {
-        // Create UI panel
-        this.createUIPanel();
+        this.createUIPanels();
 
-        // Create status displays
         this.createStatusDisplays();
 
         // Create tower selection buttons
@@ -49,15 +47,14 @@ export class UIScene extends Phaser.Scene {
         this.listenToEvents();
     }
 
-    createUIPanel() {
+    // Create UI panel
+    createUIPanels() {
         // Create top UI panel
         this.topPanel = this.add.rectangle(
             this.cameras.main.width / 2,
             30,
             this.cameras.main.width,
-            60,
-            0x333333,
-            0.8
+            60
         );
 
         // Create bottom UI panel
@@ -65,18 +62,17 @@ export class UIScene extends Phaser.Scene {
             this.cameras.main.width / 2,
             this.cameras.main.height - 45,
             this.cameras.main.width,
-            90,
-            0x333333,
-            0.8
+            90
         );
     }
 
+    // Create status displays
     createStatusDisplays() {
         // Credits display
         this.add.image(50, 30, "icon_credits").setScale(0.5);
         this.creditsText = this.add
             .text(80, 30, `Credits: ${this.credits}`, {
-                font: "18px Nunito",
+                font: "18px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
@@ -85,7 +81,7 @@ export class UIScene extends Phaser.Scene {
         this.add.image(250, 30, "icon_health").setScale(0.5);
         this.healthText = this.add
             .text(280, 30, `Health: ${this.health}%`, {
-                font: "18px Nunito",
+                font: "18px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
@@ -94,7 +90,7 @@ export class UIScene extends Phaser.Scene {
         this.add.image(450, 30, "icon_wave").setScale(0.5);
         this.waveText = this.add
             .text(480, 30, `Wave: ${this.wave}`, {
-                font: "18px Nunito",
+                font: "18px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
@@ -102,7 +98,7 @@ export class UIScene extends Phaser.Scene {
         // Tower info text
         this.infoText = this.add
             .text(700, 30, "", {
-                font: "16px Nunito",
+                font: "16px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
@@ -134,7 +130,7 @@ export class UIScene extends Phaser.Scene {
             },
         };
 
-        // Tower selection buttons - simplified implementation
+        // Tower selection buttons
         const buttonY = this.cameras.main.height - 45;
         let buttonX = 100;
 
@@ -143,19 +139,13 @@ export class UIScene extends Phaser.Scene {
             const tower = towerTypes[type as keyof typeof towerTypes];
 
             // Create button background
-            const button = this.add.rectangle(
-                buttonX,
-                buttonY,
-                150,
-                70,
-                0x666666,
-                1
-            );
+            const button = this.add.rectangle(buttonX, buttonY, 150, 70);
+            button.setStrokeStyle(2, 0xffffff);
             button.setInteractive({ useHandCursor: true });
 
             // Tower name and cost
             this.add.text(buttonX - 20, buttonY - 15, tower.name, {
-                font: "16px Nunito",
+                font: "16px JetBrains Mono",
                 color: "#ffffff",
             });
 
@@ -164,7 +154,7 @@ export class UIScene extends Phaser.Scene {
                 buttonY + 5,
                 `Cost: ${tower.cost}`,
                 {
-                    font: "14px Nunito",
+                    font: "14px JetBrains Mono",
                     color: "#ffff00",
                 }
             );
@@ -174,7 +164,7 @@ export class UIScene extends Phaser.Scene {
 
             // Button hover effect
             button.on("pointerover", () => {
-                button.setFillStyle(0x888888);
+                button.setStrokeStyle(2, 0xff0000);
 
                 // Show hover info
                 this.infoText.setText(
@@ -185,7 +175,8 @@ export class UIScene extends Phaser.Scene {
             });
 
             button.on("pointerout", () => {
-                button.setFillStyle(0x666666);
+                button.setStrokeStyle(2, 0xffffff);
+
                 this.infoText.setText("");
             });
 
@@ -223,7 +214,7 @@ export class UIScene extends Phaser.Scene {
 
         this.add
             .text(buttonX, buttonY, "Cancel", {
-                font: "16px Nunito",
+                font: "16px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0.5);
@@ -249,7 +240,7 @@ export class UIScene extends Phaser.Scene {
         // Tower type text
         this.towerTypeText = this.add
             .text(0, -80, "Tower Info", {
-                font: "bold 18px Nunito",
+                font: "bold 18px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0.5);
@@ -258,7 +249,7 @@ export class UIScene extends Phaser.Scene {
         // Stats text
         this.towerStatsText = this.add
             .text(0, -20, "", {
-                font: "14px Nunito",
+                font: "14px JetBrains Mono",
                 color: "#ffffff",
                 align: "center",
             })
@@ -330,10 +321,10 @@ export class UIScene extends Phaser.Scene {
 
             // Update color based on affordability
             if (this.credits >= cost) {
-                button.setFillStyle(0x666666);
+                button.setStrokeStyle(2, 0xffffff);
                 costText.setColor("#ffff00");
             } else {
-                button.setFillStyle(0x444444);
+                button.setStrokeStyle(2, 0x444444);
                 costText.setColor("#ff6666");
             }
         });
@@ -344,7 +335,7 @@ export class UIScene extends Phaser.Scene {
 
         // Tell game scene to start placement
         const gameScene = this.scene.get("GameScene") as GameScene;
-        gameScene.startTowerPlacement(towerType);
+        gameScene.towerStartPlacement(towerType);
     }
 
     cancelTowerSelection() {
@@ -353,11 +344,11 @@ export class UIScene extends Phaser.Scene {
 
         // Reset button appearances
         this.towerButtons.forEach((button) => {
-            button.setFillStyle(0x666666);
+            button.setStrokeStyle(2, 0xffffff);
         });
 
         // Tell game scene to cancel placement
         const gameScene = this.scene.get("GameScene") as GameScene;
-        gameScene.cancelTowerPlacement();
+        gameScene.towerCancelPlacement();
     }
 }

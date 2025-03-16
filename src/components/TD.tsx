@@ -69,14 +69,28 @@ const TD: React.FC<TDProps> = ({
                 physics: {
                     default: "arcade", // TODO: Migrate to "matter"
                     arcade: {
-                        debug: true,
+                        debug: false,
+                        gravity: { x: 0, y: 0 }, // No gravity for top-down view
                     },
                 },
                 scale: {
-                    mode: Phaser.Scale.FIT,
+                    mode: Phaser.Scale.RESIZE,
                     autoCenter: Phaser.Scale.CENTER_BOTH,
                     width: gameWidth,
                     height: gameHeight,
+                },
+                // Add input configuration for mouse wheel
+                input: {
+                    keyboard: true,
+                    mouse: true,
+                    touch: true,
+                    gamepad: false,
+                },
+                // Ensure pixel art looks crisp when zoomed
+                render: {
+                    pixelArt: true,
+                    antialias: false,
+                    roundPixels: true,
                 },
             };
 

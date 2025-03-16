@@ -32,6 +32,12 @@ const Layout = ({ children, title = "Tower Defense" }) => {
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css?family=Nunito"
                 />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" />
+                <link
+                    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
+                    rel="stylesheet"
+                />
             </Head>
 
             <Skybox />

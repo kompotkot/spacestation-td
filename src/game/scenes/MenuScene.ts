@@ -10,7 +10,7 @@ export class MenuScene extends Phaser.Scene {
             this.cameras.main.height / 3,
             "SPACE STATION DEFENDER",
             {
-                font: "bold 32px Nunito",
+                font: "32px JetBrains Mono",
                 color: "#ffffff",
                 align: "center",
             }
@@ -23,7 +23,7 @@ export class MenuScene extends Phaser.Scene {
             this.cameras.main.height / 3 + 50,
             "Defend against aliens, monsters and space pirates",
             {
-                font: "20px Nunito",
+                font: "20px JetBrains Mono",
                 color: "#cccccc",
                 align: "center",
             }
@@ -37,7 +37,7 @@ export class MenuScene extends Phaser.Scene {
             this.cameras.main.height / 2,
             `Wallet: ${walletAddress}`,
             {
-                font: "18px Nunito",
+                font: "18px JetBrains Mono",
                 color: "#ffcc00",
                 align: "center",
             }
@@ -59,7 +59,7 @@ export class MenuScene extends Phaser.Scene {
             this.cameras.main.height / 2 + 50,
             "START GAME",
             {
-                font: "bold 24px Nunito",
+                font: "bold 24px JetBrains Mono",
                 color: "#ffffff",
                 align: "center",
             }
@@ -86,7 +86,7 @@ export class MenuScene extends Phaser.Scene {
             this.cameras.main.height - 100,
             "Click on the station floor to place defenses.\nProtect your station from waves of enemies.\nDon't let enemies reach the exit!",
             {
-                font: "16px Nunito",
+                font: "16px JetBrains Mono",
                 color: "#cccccc",
                 align: "center",
             }

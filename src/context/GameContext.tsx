@@ -47,13 +47,21 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         // Initialize global game settings
         if (!window.gameSettings) {
             window.gameSettings = {
-                gridSize: 99,
+                gridSize: 128,
                 credits: 100,
+                health: 100,
                 waveCount: 1,
                 enemyHealth: 100,
                 enemySpeed: 100,
                 difficultyModifier: 1.2,
                 address: address,
+                camera: {
+                    zoomFactor: 0.5,
+                    minZoom: 0.5,
+                    maxZoom: 2,
+                    panSpeed: 10,
+                    zoomSpeed: 0.1,
+                },
             };
         }
 

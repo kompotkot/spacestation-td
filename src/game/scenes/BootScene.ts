@@ -10,7 +10,7 @@ export class BootScene extends Phaser.Scene {
             this.cameras.main.height / 2 - 50,
             "Loading...",
             {
-                font: "20px Nunito",
+                font: "20px JetBrains Mono",
                 color: "#ffffff",
             }
         );

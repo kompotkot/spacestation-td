@@ -5,61 +5,60 @@ export class PreloadScene extends Phaser.Scene {
 
     preload() {
         // Set up error handling for missing assets
-        this.load.on("loaderror", (fileObj: any) => {
+        this.load.on("loaderror", (fileObj: Phaser.Loader.File) => {
             console.warn("Error loading asset:", fileObj.key);
         });
 
-        // Load tiles and map assets
-        this.load.image("tile_floor", "/assets/tiles/floor.png");
-        this.load.image("tile_wall", "/assets/tiles/wall.png");
-        this.load.image("tile_path", "/assets/tiles/path.png");
-        this.load.image("tile_spawn", "/assets/tiles/spawn.png");
-        this.load.image("tile_exit", "/assets/tiles/exit.png");
+        // Load map assets
+        this.load.image("floor_tiles", "assets/floor/floor-tile-map.png");
+        this.load.tilemapTiledJSON("map", "assets/maps/map-1.tmj");
+
+        this.load.image("exit_base", "assets/base/base-1.png");
+        this.load.image("exit_portal", "assets/base/base-6.png");
+
+        this.load.image("spawn_base", "assets/base/base-2.png");
+        this.load.image("spawn_portal", "assets/base/base-5.png");
+
+        this.load.image("tower_base", "assets/base/base-4.png");
+        this.load.image("tower_portal", "assets/base/base-7.png");
 
         // Load tower assets
-        this.load.image("tower_base", "/assets/towers/base.png");
-        this.load.image("tower_turret", "/assets/towers/turret.png");
-        this.load.image("tower_laser", "/assets/towers/tlaser.png");
-        this.load.image("tower_missile", "/assets/towers/tmissile.png");
+        this.load.image("tower_turret", "assets/towers/tower-turret.png");
+        this.load.image("tower_laser", "assets/towers/tower-laser.png");
+        this.load.image("tower_missile", "assets/towers/tower-missile.png");
 
         // Load enemies assets
-        this.load.image("enemy_alien_static", "/assets/enemies/alien.png");
-        this.load.image("enemy_pirate_static", "/assets/enemies/pirate.png");
-        this.load.image("enemy_monster_static", "/assets/enemies/monster.png");
+        this.load.image("enemy_alien_static", "assets/enemies/alien.png");
+        this.load.image("enemy_pirate_static", "assets/enemies/pirate.png");
+        this.load.image("enemy_monster_static", "assets/enemies/monster.png");
 
         // Load projectiles
-        this.load.image("bullet", "/assets/projectiles/bullet.png");
-        this.load.image("laser_beam", "/assets/projectiles/laser.png");
-        this.load.image("missile", "/assets/projectiles/missile.png");
+        this.load.image("bullet", "assets/projectiles/bullet.png");
+        this.load.image("laser", "assets/projectiles/laser.png");
+        this.load.image("missile", "assets/projectiles/missile.png");
 
         // Load effects
-        this.load.image("explosion_static", "/assets/effects/explosion.png");
+        this.load.image("explosion_static", "assets/effects/explosion.png");
 
         try {
-            this.load.spritesheet(
-                "explosion",
-                "/assets/effects/explosion.png",
-                {
-                    frameWidth: 64,
-                    frameHeight: 64,
-                }
-            );
+            this.load.spritesheet("explosion", "assets/effects/explosion.png", {
+                frameWidth: 64,
+                frameHeight: 64,
+            });
         } catch (e) {
             console.warn("Error loading explosion spritesheet");
         }
 
         // Load UI elements
-        this.load.image("button", "/assets/ui/button.png"); // ???
-        this.load.image("panel", "/assets/ui/panel.png"); // ???
+        this.load.image("button", "assets/ui/button.png"); // ???
+        this.load.image("panel", "assets/ui/panel.png"); // ???
 
-        this.load.image("icon_credits", "/assets/ui/credits.png");
-        this.load.image("icon_health", "/assets/ui/health.png");
-        this.load.image("icon_wave", "/assets/ui/wave.png");
+        this.load.image("icon_credits", "assets/ui/credits.png");
+        this.load.image("icon_health", "assets/ui/health.png");
+        this.load.image("icon_wave", "assets/ui/wave.png");
     }
 
     create() {
-        // Set a flag to track if we have valid animations
-        const textureManager = this.textures;
         const hasSpriteFrames = {
             alien: this.checkFrames("enemy_alien", 4),
             pirate: this.checkFrames("enemy_pirate", 4),
@@ -67,7 +66,7 @@ export class PreloadScene extends Phaser.Scene {
             explosion: this.checkFrames("explosion", 8),
         };
 
-        // Store this information to be accessed by other scenes
+        // Store this information in the registry for other scenes to use
         this.registry.set("hasSpriteFrames", hasSpriteFrames);
 
         // Only create animations if we have the frames

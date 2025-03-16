@@ -1,30 +1,46 @@
 export class GameScene extends Phaser.Scene {
-    // Properties
     gridSize: number;
-    map: any[];
-    path: any[];
-    towers: any[];
-    enemies: any[];
-    waves: any[];
-    currentWave: number;
-    waveInProgress: boolean;
-    health: number;
-    selectedTower: string | null;
-    placingTower: boolean;
     gridWidth: number;
     gridHeight: number;
-    towerTypes: any;
-    towerGroup: Phaser.GameObjects.Group;
+
+    map: Phaser.Tilemaps.Tilemap;
+    exitLocations: any[];
+    spawnLocations: any[];
+    towerLocations: any[];
+
+    zoomFactor: number;
+    minZoom: number;
+    maxZoom: number;
+    controls: Phaser.Cameras.Controls.SmoothedKeyControl;
+    cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+
+    paths: any[];
+    pathsActive: Map<number, any[]>;
+
+    enemies: any[];
     enemyGroup: Phaser.GameObjects.Group;
-    projectileGroup: Phaser.GameObjects.Group;
-    effectsGroup: Phaser.GameObjects.Group;
-    spawnPoint: { x: number; y: number };
-    exitPoint: { x: number; y: number };
+
+    waves: any[];
+    waveCurrent: number;
+    waveInProgress: boolean;
+
+    health: number;
+
+    towers: Array<Phaser.GameObjects.Image>;
+    towerAvailableLocations: Array<{
+        x: number;
+        y: number;
+        baseSprite?: Phaser.GameObjects.Image;
+        portalSprite?: Phaser.GameObjects.Image;
+    }>;
+    towerHoveredLocation: { x: number; y: number } | null;
+    towerSelected: string | null;
+    towerPlacing: boolean;
     towerPreview: Phaser.GameObjects.Image;
-    gameMusic: Phaser.Sound.BaseSound;
-    selectedTowerObject: any;
-    hasSpriteFrames: any;
-    lastUpdate: number;
+    towerTypes: any;
+
+    // gameMusic: Phaser.Sound.BaseSound;
+    // hasSpriteFrames: any;
 
     constructor() {
         super("GameScene");
@@ -33,349 +49,123 @@ export class GameScene extends Phaser.Scene {
     init() {
         // Initialize game variables
         this.gridSize = window.gameSettings.gridSize;
-        this.map = []; // Grid-based map
-        this.path = []; // Enemy path
-        this.towers = []; // Tower array
-        this.enemies = []; // Enemy array
-        this.waves = []; // Wave data
-        this.currentWave = 0;
-        this.waveInProgress = false;
-        this.health = 100; // Station health
-        this.selectedTower = null;
-        this.placingTower = false;
-        this.lastUpdate = 0;
+        this.gridWidth = 0;
+        this.gridHeight = 0;
 
-        // FIX: Adjust grid width calculation to properly fit the screen
-        // Leave a small margin to ensure towers at the edge are fully visible
-        const cameraWidth = this.cameras.main.width;
-        const cameraHeight = this.cameras.main.height;
+        this.map = this.add.tilemap("map");
 
-        this.gridWidth = Math.floor(cameraWidth / this.gridSize);
-        this.gridHeight = Math.floor(cameraHeight / this.gridSize);
+        // Camera control properties
+        this.zoomFactor = window.gameSettings.camera.zoomFactor;
+        this.minZoom = window.gameSettings.camera.minZoom;
+        this.maxZoom = window.gameSettings.camera.maxZoom;
 
-        // Get animation availability information from the registry
-        this.hasSpriteFrames = this.registry.get("hasSpriteFrames") || {
-            alien: false,
-            pirate: false,
-            monster: false,
-            explosion: false,
-        };
+        this.pathsActive = new Map();
 
-        // Define tower types
-        this.towerTypes = {
-            turret: {
-                name: "Turret",
-                cost: 25,
-                damage: 20,
-                range: 3 * this.gridSize,
-                fireRate: 1000, // ms between shots
-                projectileSpeed: 300,
-                sprite: "tower_turret",
-            },
-            laser: {
-                name: "Laser",
-                cost: 50,
-                damage: 10,
-                range: 4 * this.gridSize,
-                fireRate: 200, // ms between shots
-                projectileSpeed: 500,
-                sprite: "tower_laser",
-            },
-            missile: {
-                name: "Missile",
-                cost: 75,
-                damage: 50,
-                range: 5 * this.gridSize,
-                fireRate: 2000, // ms between shots
-                projectileSpeed: 200,
-                projectileSprite: "missile",
-                sprite: "tower_missile",
-            },
-        };
-
-        // Create groups
-        this.towerGroup = this.add.group();
+        this.enemies = [];
         this.enemyGroup = this.add.group();
-        this.projectileGroup = this.add.group();
-        this.effectsGroup = this.add.group();
-    }
 
-    create() {
-        // FIX: Adjust camera to properly show the entire scene
-        this.cameras.main.setViewport(
-            0,
-            0,
-            this.cameras.main.width,
-            this.cameras.main.height
-        );
+        this.waves = [];
+        this.waveCurrent = 0;
+        this.waveInProgress = false;
 
-        // Create background
-        this.createMap();
+        this.health = window.gameSettings.health;
 
-        // Place spawn and exit points
-        this.createSpawnAndExit();
+        this.towers = [];
+        this.towerAvailableLocations = [];
+        this.towerHoveredLocation = null;
+        this.towerSelected = null;
+        this.towerPlacing = false;
 
-        // Generate path for enemies
-        this.createPath();
+        // Define specific tile locations
+        this.exitLocations = [
+            {
+                x: 18,
+                y: 2,
+                type: "exit",
+                id: 1,
+            },
+            {
+                x: 18,
+                y: 4,
+                type: "exit",
+                id: 2,
+            },
+        ];
 
-        // FIX: Place random tower bases at the start of the game
-        this.placeRandomTowers();
+        this.spawnLocations = [
+            {
+                x: 1,
+                y: 2,
+                type: "spawn",
+                id: 1,
+            },
+            {
+                x: 1,
+                y: 4,
+                type: "spawn",
+                id: 2,
+            },
+        ];
 
-        // Setup towers, enemies and paths
-        this.setupTowerPlacement();
-        this.setupEnemyMovement();
+        this.towerLocations = [
+            {
+                x: 5,
+                y: 3,
+                type: "base",
+                id: 1,
+            },
+            {
+                x: 9,
+                y: 1,
+                type: "base",
+                id: 2,
+            },
+            {
+                x: 8,
+                y: 5,
+                type: "base",
+                id: 3,
+            },
+            {
+                x: 9,
+                y: 0,
+                type: "base",
+                id: 4,
+            },
+            {
+                x: 14,
+                y: 5,
+                type: "base",
+                id: 5,
+            },
+            {
+                x: 16,
+                y: 3,
+                type: "base",
+                id: 6,
+            },
+            {
+                x: 16,
+                y: 0,
+                type: "base",
+                id: 7,
+            },
+        ];
 
-        // Create wave data
-        this.createWaves();
+        this.paths = [
+            {
+                spawn: 1,
+                exit: 1,
+            },
+            {
+                spawn: 2,
+                exit: 2,
+            },
+        ];
 
-        // Setup click handling
-        this.input.on("pointerdown", this.handleClick, this);
-
-        // Start the game
-        this.time.delayedCall(3000, this.startNextWave, [], this);
-
-        // Update UI
-        this.events.emit("updateUI", {
-            credits: window.gameSettings.credits,
-            health: this.health,
-            wave: window.gameSettings.waveCount,
-        });
-    }
-
-    // NEW: Place random towers at the start of the game
-    placeRandomTowers() {
-        // Place some random towers at the start
-        const numInitialTowers = 3;
-        const towerKeys = Object.keys(this.towerTypes);
-
-        // Attempt to place a set number of random towers
-        let placedTowers = 0;
-        let attempts = 0;
-        const maxAttempts = 50; // Avoid infinite loop
-
-        while (placedTowers < numInitialTowers && attempts < maxAttempts) {
-            attempts++;
-
-            // Get random position
-            const gridX = Phaser.Math.Between(1, this.gridWidth - 2);
-            const gridY = Phaser.Math.Between(1, this.gridHeight - 2);
-
-            // Check if tile is buildable and not on the path
-            if (
-                this.map[gridY] &&
-                this.map[gridY][gridX] &&
-                this.map[gridY][gridX].buildable &&
-                this.map[gridY][gridX].type === "floor"
-            ) {
-                // Get random tower type
-                const towerType =
-                    towerKeys[Phaser.Math.Between(0, towerKeys.length - 1)];
-
-                // Place tower
-                this.createTower(gridX, gridY, towerType);
-                placedTowers++;
-            }
-        }
-    }
-
-    // NEW: Helper method to create a tower at a specific location
-    createTower(gridX: number, gridY: number, towerType: string) {
-        const x = gridX * this.gridSize + this.gridSize / 2;
-        const y = gridY * this.gridSize + this.gridSize / 2;
-
-        // Create tower base
-        const base = this.add.image(x, y, "tower_base");
-
-        // Create tower turret/gun/etc on top
-        const turret = this.add.image(x, y, this.towerTypes[towerType].sprite);
-
-        // Associate turret with base
-        base.setData("turret", turret);
-        base.setData("type", towerType);
-        base.setData("damage", this.towerTypes[towerType].damage);
-        base.setData("range", this.towerTypes[towerType].range);
-        base.setData("fireRate", this.towerTypes[towerType].fireRate);
-        base.setData("lastFired", 0);
-        base.setData("gridX", gridX);
-        base.setData("gridY", gridY);
-        base.setData(
-            "projectileSpeed",
-            this.towerTypes[towerType].projectileSpeed
-        );
-
-        // Draw range indicator (optional - for visualizing range)
-        const rangeCircle = this.add.circle(
-            x,
-            y,
-            this.towerTypes[towerType].range,
-            0xffffff,
-            0.1
-        );
-        rangeCircle.setVisible(false);
-        base.setData("rangeIndicator", rangeCircle);
-
-        // Add to group (add both base and turret)
-        this.towerGroup.add(base);
-        this.towerGroup.add(turret);
-        this.towers.push(base);
-
-        // Mark grid as not buildable
-        this.map[gridY][gridX].buildable = false;
-
-        return base;
-    }
-
-    createMap() {
-        // Create a grid-based map for the space station
-        for (let y = 0; y < this.gridHeight; y++) {
-            this.map[y] = [];
-            for (let x = 0; x < this.gridWidth; x++) {
-                // By default, all cells are floor (buildable)
-                let cell = {
-                    type: "floor",
-                    x,
-                    y,
-                    buildable: true,
-                    tile: null,
-                    tower: null,
-                };
-
-                // Create the tile
-                const tile = this.add.image(
-                    x * this.gridSize + this.gridSize / 2,
-                    y * this.gridSize + this.gridSize / 2,
-                    "tile_floor"
-                );
-
-                // Store the tile in the cell
-                cell.tile = tile;
-                this.map[y][x] = cell;
-            }
-        }
-    }
-
-    createSpawnAndExit() {
-        // Place the spawn and exit points
-        const spawnY = Math.floor(this.gridHeight / 2);
-        this.spawnPoint = { x: 0, y: spawnY };
-        this.map[spawnY][0].type = "spawn";
-        this.map[spawnY][0].buildable = false;
-        this.map[spawnY][0].tile.setTexture("tile_spawn");
-
-        const exitY = Math.floor(this.gridHeight / 2);
-        this.exitPoint = { x: this.gridWidth - 1, y: exitY };
-        this.map[exitY][this.gridWidth - 1].type = "exit";
-        this.map[exitY][this.gridWidth - 1].buildable = false;
-        this.map[exitY][this.gridWidth - 1].tile.setTexture("tile_exit");
-    }
-
-    createPath() {
-        // Generate a path from spawn to exit
-        this.path = [];
-        let currentX = this.spawnPoint.x;
-        const targetX = this.exitPoint.x;
-        let currentY = this.spawnPoint.y;
-
-        this.path.push({ x: currentX, y: currentY });
-
-        while (currentX < targetX) {
-            currentX++;
-
-            // Mark path cell as unbuildable
-            if (this.map[currentY] && this.map[currentY][currentX]) {
-                this.map[currentY][currentX].type = "path";
-                this.map[currentY][currentX].buildable = false;
-                this.map[currentY][currentX].tile.setTexture("tile_path");
-            }
-
-            this.path.push({ x: currentX, y: currentY });
-        }
-    }
-
-    setupTowerPlacement() {
-        // Setup tower placement preview
-        this.towerPreview = this.add.image(0, 0, "tower_base");
-        this.towerPreview.setAlpha(0.6);
-        this.towerPreview.setVisible(false);
-
-        // Add tower turret preview on top
-        const turretPreview = this.add.image(0, 0, "tower_turret");
-        turretPreview.setAlpha(0.6);
-        turretPreview.setVisible(false);
-
-        // Store reference to turret preview
-        this.towerPreview.setData("turretPreview", turretPreview);
-
-        this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-            if (this.placingTower && this.selectedTower) {
-                const gridX = Math.floor(pointer.x / this.gridSize);
-                const gridY = Math.floor(pointer.y / this.gridSize);
-
-                if (
-                    gridX >= 0 &&
-                    gridX < this.gridWidth &&
-                    gridY >= 0 &&
-                    gridY < this.gridHeight
-                ) {
-                    const x = gridX * this.gridSize + this.gridSize / 2;
-                    const y = gridY * this.gridSize + this.gridSize / 2;
-
-                    // Update base position
-                    this.towerPreview.setPosition(x, y);
-
-                    // Update turret position
-                    const turretPreview =
-                        this.towerPreview.getData("turretPreview");
-                    turretPreview.setPosition(x, y);
-
-                    // Update texture based on selected tower
-                    const towerSprite =
-                        this.towerTypes[this.selectedTower].sprite;
-                    turretPreview.setTexture(towerSprite);
-                    turretPreview.setVisible(true);
-
-                    // Update tint based on buildable status and tower presence
-                    // FIX: Also check if there's already a tower here
-                    const canBuild =
-                        this.map[gridY][gridX].buildable &&
-                        !this.isTowerAt(gridX, gridY);
-
-                    if (canBuild) {
-                        this.towerPreview.setTint(0x00ff00);
-                        turretPreview.setTint(0x00ff00);
-                    } else {
-                        this.towerPreview.setTint(0xff0000);
-                        turretPreview.setTint(0xff0000);
-                    }
-                }
-            }
-        });
-    }
-
-    // NEW: Helper method to check if a tower exists at a specific location
-    isTowerAt(gridX: number, gridY: number): boolean {
-        return this.towers.some(
-            (tower) =>
-                tower.getData("gridX") === gridX &&
-                tower.getData("gridY") === gridY
-        );
-    }
-
-    setupEnemyMovement() {
-        // Setup physics for enemies
-        this.physics.world.setBounds(
-            0,
-            0,
-            this.cameras.main.width,
-            this.cameras.main.height
-        );
-    }
-
-    createWaves() {
-        // Define waves of enemies
         this.waves = [
             {
-                enemies: [{ type: "alien", count: 5, delay: 2000 }],
+                enemies: [{ type: "alien", count: 8, delay: 2000 }],
                 reward: 50,
             },
             {
@@ -394,62 +184,423 @@ export class GameScene extends Phaser.Scene {
                 reward: 100,
             },
         ];
+
+        // Define tower types
+        this.towerTypes = {
+            turret: {
+                name: "Turret",
+                cost: 25,
+                damage: 20,
+                range: 3 * this.gridSize,
+                fireRate: 1000, // ms between shots
+                projectileSpeed: 300,
+                projectileSprite: "bullet",
+                sprite: "tower_turret",
+            },
+            laser: {
+                name: "Laser",
+                cost: 50,
+                damage: 10,
+                range: 4 * this.gridSize,
+                fireRate: 200,
+                projectileSpeed: 500,
+                projectileSprite: "laser",
+                sprite: "tower_laser",
+            },
+            missile: {
+                name: "Missile",
+                cost: 75,
+                damage: 50,
+                range: 5 * this.gridSize,
+                fireRate: 2000,
+                projectileSpeed: 200,
+                projectileSprite: "missile",
+                sprite: "tower_missile",
+            },
+        };
+
+        // // Get animation availability information from the registry
+        // this.hasSpriteFrames = this.registry.get("hasSpriteFrames") || {
+        //     alien: false,
+        //     pirate: false,
+        //     monster: false,
+        //     explosion: false,
+        // };
     }
 
-    startNextWave() {
-        // Start the next wave of enemies
-        if (this.currentWave < this.waves.length) {
-            this.waveInProgress = true;
-            const wave = this.waves[this.currentWave];
+    create() {
+        console.log("[INFO] GameScene creation started");
 
-            // Spawn enemies in the wave
-            let enemyIndex = 0;
-            let typeIndex = 0;
+        this.mapCreateObjects();
 
-            // Process each enemy type in the wave
-            const spawnNextType = () => {
-                if (typeIndex < wave.enemies.length) {
-                    const enemyType = wave.enemies[typeIndex];
-                    let spawned = 0;
+        this.cameraControlsSetup();
 
-                    // Spawn this type of enemy
-                    const spawnEnemy = () => {
-                        if (spawned < enemyType.count) {
-                            this.spawnEnemy(enemyType.type);
-                            spawned++;
-                            this.time.delayedCall(enemyType.delay, spawnEnemy);
-                        } else {
-                            typeIndex++;
-                            this.time.delayedCall(1000, spawnNextType);
-                        }
-                    };
+        this.mapCreateBases(this.exitLocations, "exit");
+        this.mapCreateBases(this.spawnLocations, "spawn");
+        this.mapCreateBases(this.towerLocations, "tower");
 
-                    spawnEnemy();
-                } else {
-                    // All enemies spawned
-                    this.time.delayedCall(
-                        5000,
-                        this.checkWaveComplete,
-                        [],
-                        this
-                    );
-                }
-            };
+        this.enemyPathsSetup();
 
-            spawnNextType();
+        this.waveStartNext();
 
-            this.events.emit("updateUI", {
-                wave: window.gameSettings.waveCount,
+        // Setup mouse wheel for zooming
+        this.input.on("wheel", this.handleMouseWheel, this);
+    }
+
+    // Create map objects and layers
+    mapCreateObjects() {
+        // Create a grid-based map for the space station
+        const floorTiles = this.map.addTilesetImage(
+            "floor-tile-map",
+            "floor_tiles"
+        );
+
+        // Create layers
+        const floorLayer = this.map.createLayer("floor", floorTiles);
+        const obstaclesLayer = this.map.createLayer("obstacles", floorTiles);
+
+        // Set the world bounds to match the size of the tilemap
+        const mapWidth = this.map.widthInPixels;
+        const mapHeight = this.map.heightInPixels;
+        // this.physics.world.setBounds(0, 0, mapWidth, mapHeight);
+
+        // Store grid dimensions based on the actual map size
+        this.gridWidth = Math.floor(mapWidth / this.gridSize);
+        this.gridHeight = Math.floor(mapHeight / this.gridSize);
+    }
+
+    mapCreateBases(bases, baseType: string) {
+        bases.forEach((base) => {
+            // Convert grid coordinates to pixel coordinates
+            const x = base.x * this.gridSize + this.gridSize / 2;
+            const y = base.y * this.gridSize + this.gridSize / 2;
+
+            // Create the base image
+            const baseSprite = this.add.image(x, y, `${baseType}_base`);
+
+            // Create portal on top of the base
+            const portalSprite = this.add.image(x, y, `${baseType}_portal`);
+            this.tweens.add({
+                targets: portalSprite,
+                alpha: { from: 1, to: 0.2 },
+                duration: 1000,
+                ease: "Sine.easeInOut",
+                yoyo: true,
+                repeat: -1,
             });
 
-            this.currentWave++;
+            if (baseType === "tower") {
+                this.towerAvailableLocations.push({
+                    x: base.x,
+                    y: base.y,
+                    baseSprite: baseSprite,
+                    portalSprite: portalSprite,
+                });
+            }
+        });
+    }
+
+    // Set up camera controls
+    cameraControlsSetup() {
+        // // Set camera bounds to the map size
+        // camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+
+        // Enable keyboard controls for camera movement
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+        // Use panSpeed from gameSettings for camera movement
+        const panSpeed = window.gameSettings.camera.panSpeed / 100;
+
+        // Configure key control settings and create controls
+        const controlConfig = {
+            camera: this.cameras.main,
+            left: this.cursors.left,
+            right: this.cursors.right,
+            up: this.cursors.up,
+            down: this.cursors.down,
+            acceleration: panSpeed,
+            drag: 0.005,
+            maxSpeed: 1.0,
+        };
+        this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(
+            controlConfig
+        );
+
+        this.cameraCenter();
+
+        // Set initial zoom
+        this.cameras.main.setZoom(window.gameSettings.camera.minZoom);
+    }
+
+    handleMouseWheel(
+        pointer: Phaser.Input.Pointer,
+        gameObjects: any,
+        deltaX: number,
+        deltaY: number,
+        deltaZ: number
+    ) {
+        if (deltaY < 0) {
+            this.zoomIn();
+        } else {
+            this.zoomOut();
         }
     }
 
-    spawnEnemy(type: string) {
+    zoomIn() {
+        if (this.zoomFactor < this.maxZoom) {
+            this.zoomFactor += window.gameSettings.camera.zoomSpeed;
+            this.cameras.main.setZoom(this.zoomFactor);
+        }
+    }
+
+    zoomOut() {
+        if (this.zoomFactor > this.minZoom) {
+            this.zoomFactor -= window.gameSettings.camera.zoomSpeed;
+            this.cameras.main.setZoom(this.zoomFactor);
+        }
+    }
+
+    // Center the camera on the map
+    cameraCenter() {
+        // Get the center coordinates of the map in world space
+        const mapCenterX = this.map.widthInPixels / 2;
+        const mapCenterY = this.map.heightInPixels / 2;
+
+        this.cameras.main.centerOn(mapCenterX, mapCenterY);
+    }
+
+    // Generate path for enemies
+    enemyPathsSetup() {
+        // Create pathfinding grid - you can adjust this based on your map
+        const grid = [];
+        for (let y = 0; y < this.gridHeight; y++) {
+            const row = [];
+            for (let x = 0; x < this.gridWidth; x++) {
+                // Check if this position is blocked, for now, assume all cells are walkable
+                row.push(1); // 1 means walkable
+            }
+            grid.push(row);
+        }
+
+        // Mark obstacles as unwalkable
+        // this.map.getLayer('obstacles').data.forEach((row, y) => {
+        //     row.forEach((tile, x) => {
+        //         if (tile && tile.index !== -1) {
+        //             grid[y][x] = 0; // 0 means unwalkable
+        //         }
+        //     });
+        // });
+
+        // Generate paths for each spawn-exit pair
+        this.paths.forEach((pathInfo) => {
+            // Find spawn and exit points with matching IDs
+            const spawn = this.spawnLocations.find(
+                (loc) => loc.id === pathInfo.spawn
+            );
+            const exit = this.exitLocations.find(
+                (loc) => loc.id === pathInfo.exit
+            );
+
+            const path = this.enemyPathsCreateDirect(spawn, exit);
+
+            // Store the path in the pathsActive map
+            this.pathsActive.set(spawn.id, path);
+
+            // // Optionally visualize the path for debugging
+            // this.enemyPathsVisualize(path);
+        });
+    }
+
+    // Create a simple direct path between two points with intermediate points
+    enemyPathsCreateDirect(startLoc, endLoc) {
+        const path = [];
+
+        // Start with horizontal movement
+        let currentX = startLoc.x;
+        const endX = endLoc.x;
+
+        while (currentX !== endX) {
+            currentX += currentX < endX ? 1 : -1;
+            path.push({ x: currentX, y: startLoc.y });
+        }
+
+        // Then add vertical movement
+        let currentY = startLoc.y;
+        const endY = endLoc.y;
+
+        while (currentY !== endY) {
+            currentY += currentY < endY ? 1 : -1;
+            path.push({ x: endX, y: currentY });
+        }
+
+        return path;
+    }
+
+    enemyPathsVisualize(path) {
+        const graphics = this.add.graphics({
+            lineStyle: { width: 2, color: 0xffff00, alpha: 0.5 },
+        });
+
+        for (let i = 0; i < path.length; i++) {
+            const gridX = path[i].x * this.gridSize + this.gridSize / 2;
+            const gridY = path[i].y * this.gridSize + this.gridSize / 2;
+
+            // Draw a circle at each path point
+            graphics.strokeCircle(gridX, gridY, 5);
+
+            // Draw a line to the next point
+            if (i < path.length - 1) {
+                const nextGridX =
+                    path[i + 1].x * this.gridSize + this.gridSize / 2;
+                const nextGridY =
+                    path[i + 1].y * this.gridSize + this.gridSize / 2;
+
+                graphics.beginPath();
+                graphics.moveTo(gridX, gridY);
+                graphics.lineTo(nextGridX, nextGridY);
+                graphics.closePath();
+                graphics.strokePath();
+            }
+        }
+    }
+
+    waveStartNext() {
+        if (this.waveCurrent < this.waves.length) {
+            this.waveInProgress = true;
+            const wave = this.waves[this.waveCurrent];
+
+            // Process each spawn point
+            this.spawnLocations.forEach((spawn) => {
+                // Only spawn if this spawn point has a valid path
+                if (this.pathsActive.has(spawn.id)) {
+                    // Process each enemy type in the wave
+                    let typeIndex = 0;
+
+                    const spawnNextType = () => {
+                        if (typeIndex < wave.enemies.length) {
+                            const enemyType = wave.enemies[typeIndex];
+                            let spawned = 0;
+
+                            // Spawn this type of enemy
+                            const enemySpawn = () => {
+                                if (spawned < enemyType.count) {
+                                    this.enemySpawn(enemyType.type, spawn.id);
+                                    spawned++;
+                                    this.time.delayedCall(
+                                        enemyType.delay,
+                                        enemySpawn
+                                    );
+                                } else {
+                                    typeIndex++;
+                                    this.time.delayedCall(1000, spawnNextType);
+                                }
+                            };
+
+                            enemySpawn();
+                        }
+                    };
+
+                    spawnNextType();
+                }
+            });
+
+            // Check if wave is complete after all enemies should be spawned and moved
+            const totalEnemies =
+                wave.enemies.reduce(
+                    (total, enemyType) => total + enemyType.count,
+                    0
+                ) * this.spawnLocations.length;
+            const estimatedWaveTime = 20000; // Adjust based on your game's pace
+
+            this.time.delayedCall(
+                estimatedWaveTime,
+                this.waveCheckComplete,
+                [],
+                this
+            );
+
+            // Update UI if needed
+            this.events.emit("updateUI", {
+                wave: this.waveCurrent + 1,
+            });
+
+            this.waveCurrent++;
+        } else {
+            console.log("[INFO] All waves completed!");
+
+            // Game won or next level logic
+        }
+    }
+
+    waveComplete() {
+        this.waveInProgress = false;
+
+        // Award credits for completing the wave
+        if (
+            this.waveCurrent - 1 >= 0 &&
+            this.waveCurrent - 1 < this.waves.length
+        ) {
+            const waveReward = this.waves[this.waveCurrent - 1].reward;
+            window.gameSettings.credits += waveReward;
+        }
+
+        // Update UI
+        this.events.emit("updateUI", {
+            credits: window.gameSettings.credits,
+        });
+
+        // Show wave complete message
+        const completeText = this.add.text(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            `Wave ${window.gameSettings.waveCount} Complete!\nNext wave in 10 seconds`,
+            {
+                font: "bold 30px Arial",
+                color: "#ffffff",
+                align: "center",
+                stroke: "#000000",
+                strokeThickness: 4,
+            }
+        );
+        completeText.setOrigin(0.5);
+        completeText.setDepth(10);
+
+        // Remove text after a while
+        this.time.delayedCall(3000, () => {
+            completeText.destroy();
+        });
+
+        // Prepare next wave
+        window.gameSettings.waveCount++;
+        window.gameSettings.enemyHealth *=
+            window.gameSettings.difficultyModifier;
+        window.gameSettings.enemySpeed *=
+            window.gameSettings.difficultyModifier;
+
+        // Start next wave after delay
+        this.time.delayedCall(10000, this.waveStartNext, [], this);
+    }
+
+    waveCheckComplete() {
+        // If no enemies left and none spawning, wave is complete
+        if (this.enemies.length === 0) {
+            this.waveComplete();
+        } else {
+            // Check again later
+            this.time.delayedCall(1000, this.waveCheckComplete, [], this);
+        }
+    }
+
+    enemySpawn(type: string, spawnId: number) {
+        // Find the spawn location
+        const spawn = this.spawnLocations.find((loc) => loc.id === spawnId);
+
+        // Get path for this spawn point
+        const path = this.pathsActive.get(spawnId);
+
         // Get spawn position
-        const x = this.spawnPoint.x * this.gridSize + this.gridSize / 2;
-        const y = this.spawnPoint.y * this.gridSize + this.gridSize / 2;
+        const x = spawn.x * this.gridSize + this.gridSize / 2;
+        const y = spawn.y * this.gridSize + this.gridSize / 2;
 
         // Create enemy based on type
         let enemy;
@@ -461,71 +612,45 @@ export class GameScene extends Phaser.Scene {
                 health = window.gameSettings.enemyHealth;
                 speed = window.gameSettings.enemySpeed;
                 value = 10;
-                // Use either spritesheet or static image based on availability
-                textureKey = this.hasSpriteFrames.alien
-                    ? "enemy_alien"
-                    : "enemy_alien_static";
-                enemy = this.physics.add.sprite(x, y, textureKey);
-
-                // Only play animation if available
-                if (
-                    this.hasSpriteFrames.alien &&
-                    this.anims.exists("alien_walk")
-                ) {
-                    enemy.play("alien_walk");
-                }
+                textureKey = "enemy_alien_static";
                 break;
 
             case "pirate":
                 health = window.gameSettings.enemyHealth * 1.5;
                 speed = window.gameSettings.enemySpeed * 0.8;
                 value = 15;
-                textureKey = this.hasSpriteFrames.pirate
-                    ? "enemy_pirate"
-                    : "enemy_pirate_static";
-                enemy = this.physics.add.sprite(x, y, textureKey);
-
-                // Only play animation if available
-                if (
-                    this.hasSpriteFrames.pirate &&
-                    this.anims.exists("pirate_walk")
-                ) {
-                    enemy.play("pirate_walk");
-                }
+                textureKey = "enemy_pirate_static";
                 break;
 
             case "monster":
                 health = window.gameSettings.enemyHealth * 3;
                 speed = window.gameSettings.enemySpeed * 0.6;
                 value = 25;
-                textureKey = this.hasSpriteFrames.monster
-                    ? "enemy_monster"
-                    : "enemy_monster_static";
-                enemy = this.physics.add.sprite(x, y, textureKey);
-
-                // Only play animation if available
-                if (
-                    this.hasSpriteFrames.monster &&
-                    this.anims.exists("monster_walk")
-                ) {
-                    enemy.play("monster_walk");
-                }
+                textureKey = "enemy_monster_static";
                 break;
 
             default:
-                // Fallback to alien if type not recognized
                 health = window.gameSettings.enemyHealth;
                 speed = window.gameSettings.enemySpeed;
                 value = 10;
-                enemy = this.physics.add.sprite(x, y, "enemy_alien_static");
+                textureKey = "enemy_alien_static";
                 break;
         }
 
-        // Apply current wave difficulty modifier
-        health *= Math.pow(
-            window.gameSettings.difficultyModifier,
-            window.gameSettings.waveCount - 1
-        );
+        // Create the enemy sprite
+        enemy = this.physics.add.sprite(x, y, textureKey);
+        enemy.setDepth(10); // Set depth to appear above path and bases
+
+        // Apply difficulty modifier if needed
+        if (
+            window.gameSettings.difficultyModifier &&
+            window.gameSettings.waveCount
+        ) {
+            health *= Math.pow(
+                window.gameSettings.difficultyModifier,
+                window.gameSettings.waveCount - 1
+            );
+        }
 
         // Setup enemy properties
         enemy.setData("type", type);
@@ -534,24 +659,32 @@ export class GameScene extends Phaser.Scene {
         enemy.setData("speed", speed);
         enemy.setData("value", value);
         enemy.setData("pathIndex", 0);
+        enemy.setData("spawnId", spawnId);
+        enemy.setData("path", path);
 
         // Add health bar
-        const healthBar = this.add.rectangle(x, y - 30, 50, 5, 0x00ff00);
+        const healthBar = this.add.rectangle(x, y - 20, 40, 5, 0x00ff00);
+        healthBar.setDepth(11);
         enemy.setData("healthBar", healthBar);
 
-        // Add to groups
+        // Add enemy to groups
         this.enemyGroup.add(enemy);
         this.enemies.push(enemy);
 
         // Start moving along path
-        this.moveEnemyAlongPath(enemy);
+        this.enemyMoveAlongPath(enemy);
+
+        return enemy;
     }
 
-    moveEnemyAlongPath(enemy: Phaser.Physics.Arcade.Sprite) {
+    enemyMoveAlongPath(enemy: Phaser.Physics.Arcade.Sprite) {
+        if (!enemy || !enemy.active) return;
+
+        const path = enemy.getData("path");
         const pathIndex = enemy.getData("pathIndex");
 
-        if (pathIndex < this.path.length) {
-            const targetPoint = this.path[pathIndex];
+        if (pathIndex < path.length) {
+            const targetPoint = path[pathIndex];
             const targetX = targetPoint.x * this.gridSize + this.gridSize / 2;
             const targetY = targetPoint.y * this.gridSize + this.gridSize / 2;
 
@@ -570,8 +703,10 @@ export class GameScene extends Phaser.Scene {
                 y: targetY,
                 duration: duration,
                 onComplete: () => {
-                    enemy.setData("pathIndex", pathIndex + 1);
-                    this.moveEnemyAlongPath(enemy);
+                    if (enemy && enemy.active) {
+                        enemy.setData("pathIndex", pathIndex + 1);
+                        this.enemyMoveAlongPath(enemy);
+                    }
                 },
             });
 
@@ -579,7 +714,7 @@ export class GameScene extends Phaser.Scene {
             this.tweens.add({
                 targets: enemy.getData("healthBar"),
                 x: targetX,
-                y: targetY - 30,
+                y: targetY - 20,
                 duration: duration,
             });
         } else {
@@ -589,7 +724,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     enemyReachedExit(enemy: Phaser.Physics.Arcade.Sprite) {
-        // Reduce station health
+        // Reduce player health
         this.health -= 10;
 
         // Update UI
@@ -597,20 +732,420 @@ export class GameScene extends Phaser.Scene {
             health: this.health,
         });
 
-        // Check if game over
-        if (this.health <= 0) {
-            this.gameOver();
-        }
-
         // Remove enemy
-        this.removeEnemy(enemy);
+        this.enemyRemove(enemy);
     }
 
-    // NEW: Handle projectile hit on enemy
-    onProjectileHit(
-        projectile: Phaser.GameObjects.Image,
-        enemy: Phaser.Physics.Arcade.Sprite
-    ) {
+    enemyRemove(enemy: Phaser.Physics.Arcade.Sprite) {
+        if (!enemy || !enemy.active) return;
+
+        // Remove health bar
+        const healthBar = enemy.getData("healthBar");
+        if (healthBar) {
+            healthBar.destroy();
+        }
+
+        // Remove from arrays
+        const index = this.enemies.indexOf(enemy);
+        if (index > -1) {
+            this.enemies.splice(index, 1);
+        }
+
+        // Destroy sprite
+        enemy.destroy();
+
+        // Check if wave is complete
+        if (this.enemies.length === 0 && !this.waveInProgress) {
+            this.waveCheckComplete();
+        }
+    }
+
+    towerPlacePointerMove(pointer) {
+        if (!this.towerPlacing || !this.towerSelected) return;
+
+        // Reset previously hovered location
+        if (this.towerHoveredLocation) {
+            const prevLocation = this.towerAvailableLocations.find(
+                (loc) =>
+                    loc.x === this.towerHoveredLocation.x &&
+                    loc.y === this.towerHoveredLocation.y
+            );
+
+            if (prevLocation) {
+                // Show the base sprite again
+                if (prevLocation.baseSprite) {
+                    prevLocation.baseSprite.setVisible(true);
+                }
+
+                // Restore pulsing animation for portal sprite
+                if (prevLocation.portalSprite) {
+                    this.tweens.add({
+                        targets: prevLocation.portalSprite,
+                        alpha: { from: 1, to: 0.2 },
+                        duration: 1000,
+                        ease: "Sine.easeInOut",
+                        yoyo: true,
+                        repeat: -1,
+                    });
+                }
+            }
+
+            this.towerHoveredLocation = null;
+        }
+
+        // Convert screen coordinates to world coordinates
+        const worldX = pointer.worldX || pointer.x;
+        const worldY = pointer.worldY || pointer.y;
+
+        // Get the grid coordinates
+        const gridX = Math.floor(worldX / this.gridSize);
+        const gridY = Math.floor(worldY / this.gridSize);
+
+        // Find if there's an available tower location at this exact grid position
+        const hoverLocation = this.towerAvailableLocations.find(
+            (loc) => loc.x === gridX && loc.y === gridY
+        );
+
+        if (hoverLocation) {
+            // Set hovered location
+            this.towerHoveredLocation = {
+                x: hoverLocation.x,
+                y: hoverLocation.y,
+            };
+
+            // Position tower preview
+            const x = hoverLocation.x * this.gridSize + this.gridSize / 2;
+            const y = hoverLocation.y * this.gridSize + this.gridSize / 2;
+            this.towerPreview.setPosition(x, y);
+            this.towerPreview.setVisible(true);
+
+            // Update tower preview texture based on selected tower
+            this.towerPreview.setTexture(
+                this.towerTypes[this.towerSelected].sprite
+            );
+
+            // Check if player has enough credits
+            const canAfford =
+                window.gameSettings.credits >=
+                this.towerTypes[this.towerSelected].cost;
+
+            // Change tint based on affordability
+            this.towerPreview.setTint(canAfford ? 0xffffff : 0xff6666);
+
+            // Hide the base sprite while hovering
+            if (hoverLocation.baseSprite) {
+                hoverLocation.baseSprite.setVisible(false);
+            }
+
+            // Hide the portal sprite while hovering
+            if (hoverLocation.portalSprite) {
+                // Stop any existing tweens
+                this.tweens.killTweensOf(hoverLocation.portalSprite);
+                // Hide the portal
+                hoverLocation.portalSprite.setAlpha(0);
+            }
+        } else {
+            // No valid location found, hide preview
+            this.towerPreview.setVisible(false);
+        }
+    }
+
+    // Handle pointer click for tower placement
+    towerPlacePointerDown(pointer) {
+        if (
+            !this.towerPlacing ||
+            !this.towerSelected ||
+            !this.towerHoveredLocation
+        )
+            return;
+
+        // Check if player has enough credits
+        const towerCost = this.towerTypes[this.towerSelected].cost;
+        if (window.gameSettings.credits < towerCost) {
+            console.log("[INFO] Not enough credits to place tower");
+            // Optional: Show notification to player
+            this.events.emit("showNotification", "Not enough credits!");
+            return;
+        }
+
+        // Place tower at the hovered location
+        this.towerPlace(
+            this.towerHoveredLocation.x,
+            this.towerHoveredLocation.y
+        );
+    }
+
+    towerPlace(gridX, gridY) {
+        // Find the tower location in towerAvailableLocations
+        const locationIndex = this.towerAvailableLocations.findIndex(
+            (loc) => loc.x === gridX && loc.y === gridY
+        );
+
+        if (locationIndex === -1) {
+            console.error("[ERROR] Invalid tower location");
+            return;
+        }
+
+        const location = this.towerAvailableLocations[locationIndex];
+        const x = gridX * this.gridSize + this.gridSize / 2;
+        const y = gridY * this.gridSize + this.gridSize / 2;
+
+        // Permanently hide the base sprite
+        if (location.baseSprite) {
+            location.baseSprite.destroy();
+        }
+
+        // Permanently hide the portal sprite
+        if (location.portalSprite) {
+            // Stop tweens and destroy
+            this.tweens.killTweensOf(location.portalSprite);
+            location.portalSprite.destroy();
+        }
+
+        // Create tower image
+        const tower = this.add.image(
+            x,
+            y,
+            this.towerTypes[this.towerSelected].sprite
+        );
+        tower.setDepth(10); // Make sure it appears above other elements
+
+        // Store tower data
+        tower.setData("type", this.towerSelected);
+        tower.setData("damage", this.towerTypes[this.towerSelected].damage);
+        tower.setData("range", this.towerTypes[this.towerSelected].range);
+        tower.setData("fireRate", this.towerTypes[this.towerSelected].fireRate);
+        tower.setData("lastFired", 0);
+        tower.setData("gridX", gridX);
+        tower.setData("gridY", gridY);
+
+        // Add to tower group and list
+        this.towers.push(tower);
+
+        // Subtract the cost from player's credits
+        window.gameSettings.credits -= this.towerTypes[this.towerSelected].cost;
+
+        // Update UI
+        this.events.emit("updateUI", {
+            credits: window.gameSettings.credits,
+        });
+
+        // Remove this location from available locations
+        this.towerAvailableLocations.splice(locationIndex, 1);
+
+        // Clean up preview
+        if (this.towerPreview) {
+            this.towerPreview.setVisible(false);
+        }
+        this.towerHoveredLocation = null;
+
+        // Remove the event handlers
+        this.input.off("pointermove", this.towerPlacePointerMove, this);
+        this.input.off("pointerdown", this.towerPlacePointerDown, this);
+
+        // Exit tower placement mode
+        this.towerPlacing = false;
+        this.towerSelected = null;
+
+        return tower;
+    }
+
+    towerStartPlacement(towerType) {
+        // Create preview image if it doesn't exist
+        if (!this.towerPreview) {
+            this.towerPreview = this.add.image(
+                0,
+                0,
+                this.towerTypes[towerType].sprite
+            );
+            this.towerPreview.setAlpha(0.7);
+            this.towerPreview.setVisible(false);
+            this.towerPreview.setDepth(20); // Set depth to ensure it appears above other elements
+        } else {
+            this.towerPreview.setTexture(this.towerTypes[towerType].sprite);
+        }
+
+        // Setup input handlers
+        this.input.on("pointermove", this.towerPlacePointerMove, this);
+        this.input.on("pointerdown", this.towerPlacePointerDown, this);
+
+        this.towerSelected = towerType;
+        this.towerPlacing = true;
+
+        // Show tower cost notification
+        const cost = this.towerTypes[towerType].cost;
+        this.events.emit(
+            "showNotification",
+            `Select location for ${towerType} (Cost: ${cost})`
+        );
+    }
+
+    towerCancelPlacement() {
+        this.towerPlacing = false;
+        this.towerSelected = null;
+
+        if (this.towerPreview) {
+            this.towerPreview.setVisible(false);
+        }
+
+        // Remove the event handlers
+        this.input.off("pointermove", this.towerPlacePointerMove, this);
+        this.input.off("pointerdown", this.towerPlacePointerDown, this);
+
+        // Reset any hovered location
+        if (this.towerHoveredLocation) {
+            const location = this.towerAvailableLocations.find(
+                (loc) =>
+                    loc.x === this.towerHoveredLocation.x &&
+                    loc.y === this.towerHoveredLocation.y
+            );
+
+            if (location) {
+                // Show the base sprite again
+                if (location.baseSprite) {
+                    location.baseSprite.setVisible(true);
+                }
+
+                // Restore pulsing animation
+                if (location.portalSprite) {
+                    this.tweens.add({
+                        targets: location.portalSprite,
+                        alpha: { from: 1, to: 0.2 },
+                        duration: 1000,
+                        ease: "Sine.easeInOut",
+                        yoyo: true,
+                        repeat: -1,
+                    });
+                }
+            }
+
+            this.towerHoveredLocation = null;
+        }
+    }
+
+    // Handle firing from towers
+    towerFire(tower, target, time) {
+        // Get the cooldown data
+        const lastFired = tower.getData("lastFired") || 0;
+        const fireRate = tower.getData("fireRate");
+
+        // Check if tower can fire again based on cooldown
+        if (time - lastFired >= fireRate) {
+            // Update last fired time
+            tower.setData("lastFired", time);
+
+            // Fire projectile
+            this.fireProjectile(tower, target);
+        }
+    }
+
+    // Fire projectile from a tower to a target
+    fireProjectile(tower, target) {
+        // Get tower type
+        const towerType = tower.getData("type");
+        const towerData = this.towerTypes[towerType];
+
+        // Get positions
+        const startX = tower.x;
+        const startY = tower.y;
+        const targetX = target.x;
+        const targetY = target.y;
+
+        // Calculate angle to target
+        const angle = Phaser.Math.Angle.Between(
+            startX,
+            startY,
+            targetX,
+            targetY
+        );
+
+        // Rotate tower to face target
+        tower.setRotation(angle);
+
+        // Create projectile
+        let projectile;
+        if (towerType === "laser") {
+            // Lasers are instant hit, so create a line
+            const distance = Phaser.Math.Distance.Between(
+                startX,
+                startY,
+                targetX,
+                targetY
+            );
+            const line = this.add.line(
+                0,
+                0,
+                startX,
+                startY,
+                targetX,
+                targetY,
+                0x00ffff
+            );
+            line.setLineWidth(2);
+            line.setOrigin(0, 0);
+
+            // Flash and remove
+            this.time.delayedCall(100, () => line.destroy());
+
+            // Directly damage enemy (instant hit)
+            this.fireOnProjectileHit(
+                {
+                    destroy: () => {},
+                    getData: (key) =>
+                        key === "damage"
+                            ? this.towerTypes[towerType].damage
+                            : null,
+                    x: targetX,
+                    y: targetY,
+                },
+                target
+            );
+
+            return;
+        } else {
+            // For other towers, create a moving projectile
+            const projectileTexture =
+                towerType === "missile" ? "missile" : "bullet";
+            projectile = this.add.image(startX, startY, projectileTexture);
+            projectile.setData("damage", this.towerTypes[towerType].damage);
+
+            // Set rotation to match direction
+            projectile.setRotation(angle);
+
+            // Move projectile to target with tweens
+            const speed = this.towerTypes[towerType].projectileSpeed;
+            const distance = Phaser.Math.Distance.Between(
+                startX,
+                startY,
+                targetX,
+                targetY
+            );
+            const duration = (distance / speed) * 1000;
+
+            this.tweens.add({
+                targets: projectile,
+                x: targetX,
+                y: targetY,
+                duration: duration,
+                onComplete: () => {
+                    // Check if target is still valid
+                    if (target.active) {
+                        this.fireOnProjectileHit(projectile, target);
+                    } else {
+                        projectile.destroy();
+                    }
+                },
+            });
+        }
+    }
+
+    // Handle projectile hit on enemy
+    fireOnProjectileHit(projectile, enemy) {
+        if (!enemy || !enemy.active) {
+            if (projectile) projectile.destroy();
+            return;
+        }
+
         // Deal damage
         const damage = projectile.getData("damage");
         const currentHealth = enemy.getData("health");
@@ -656,84 +1191,8 @@ export class GameScene extends Phaser.Scene {
             });
 
             // Remove enemy
-            this.removeEnemy(enemy);
+            this.enemyRemove(enemy);
         }
-    }
-
-    removeEnemy(enemy: Phaser.Physics.Arcade.Sprite) {
-        // Remove health bar
-        const healthBar = enemy.getData("healthBar");
-        if (healthBar) {
-            healthBar.destroy();
-        }
-
-        // Remove from array
-        const index = this.enemies.indexOf(enemy);
-        if (index !== -1) {
-            this.enemies.splice(index, 1);
-        }
-
-        // Destroy sprite
-        enemy.destroy();
-    }
-
-    checkWaveComplete() {
-        // If no enemies left and none spawning, wave is complete
-        if (this.enemies.length === 0) {
-            this.waveComplete();
-        } else {
-            // Check again later
-            this.time.delayedCall(1000, this.checkWaveComplete, [], this);
-        }
-    }
-
-    waveComplete() {
-        this.waveInProgress = false;
-
-        // Award credits for completing the wave
-        if (
-            this.currentWave - 1 >= 0 &&
-            this.currentWave - 1 < this.waves.length
-        ) {
-            const waveReward = this.waves[this.currentWave - 1].reward;
-            window.gameSettings.credits += waveReward;
-        }
-
-        // Update UI
-        this.events.emit("updateUI", {
-            credits: window.gameSettings.credits,
-        });
-
-        // Show wave complete message
-        const completeText = this.add.text(
-            this.cameras.main.width / 2,
-            this.cameras.main.height / 2,
-            `Wave ${window.gameSettings.waveCount} Complete!\nNext wave in 10 seconds`,
-            {
-                font: "bold 30px Arial",
-                color: "#ffffff",
-                align: "center",
-                stroke: "#000000",
-                strokeThickness: 4,
-            }
-        );
-        completeText.setOrigin(0.5);
-        completeText.setDepth(10);
-
-        // Remove text after a while
-        this.time.delayedCall(3000, () => {
-            completeText.destroy();
-        });
-
-        // Prepare next wave
-        window.gameSettings.waveCount++;
-        window.gameSettings.enemyHealth *=
-            window.gameSettings.difficultyModifier;
-        window.gameSettings.enemySpeed *=
-            window.gameSettings.difficultyModifier;
-
-        // Start next wave after delay
-        this.time.delayedCall(10000, this.startNextWave, [], this);
     }
 
     gameOver() {
@@ -784,249 +1243,52 @@ export class GameScene extends Phaser.Scene {
         this.events.emit("gameOver");
     }
 
-    handleClick(pointer: Phaser.Input.Pointer) {
-        // Handle mouse click for tower placement
-        const gridX = Math.floor(pointer.x / this.gridSize);
-        const gridY = Math.floor(pointer.y / this.gridSize);
-
-        if (
-            gridX >= 0 &&
-            gridX < this.gridWidth &&
-            gridY >= 0 &&
-            gridY < this.gridHeight
-        ) {
-            if (this.placingTower) {
-                this.placeTower(gridX, gridY);
-            } else {
-                this.selectGrid(gridX, gridY);
-            }
-        }
-    }
-
-    // FIX: Updated to check for existing towers
-    placeTower(gridX: number, gridY: number) {
-        // Place a tower at the specified grid position
-        if (!this.map[gridY] || !this.map[gridY][gridX]) return;
-
-        // Check if tile is buildable and no tower is already there
-        const isBuildable = this.map[gridY][gridX].buildable;
-        const noTowerExists = !this.isTowerAt(gridX, gridY);
-
-        if (isBuildable && noTowerExists && this.selectedTower) {
-            const towerType = this.towerTypes[this.selectedTower];
-
-            if (window.gameSettings.credits >= towerType.cost) {
-                // Create tower using helper method
-                this.createTower(gridX, gridY, this.selectedTower);
-
-                // Subtract credits
-                window.gameSettings.credits -= towerType.cost;
-
-                // Update UI
-                this.events.emit("updateUI", {
-                    credits: window.gameSettings.credits,
-                });
-
-                // Reset placement mode
-                this.placingTower = false;
-                this.towerPreview.setVisible(false);
-                this.towerPreview.getData("turretPreview").setVisible(false);
-            }
-        }
-    }
-
-    selectGrid(gridX: number, gridY: number) {
-        // Select a tower or grid cell
-
-        // Find if there's a tower at this location
-        const tower = this.towers.find(
-            (t) => t.getData("gridX") === gridX && t.getData("gridY") === gridY
-        );
-
-        if (tower) {
-            // Show tower's range indicator
-            const rangeIndicator = tower.getData("rangeIndicator");
-            if (rangeIndicator) {
-                rangeIndicator.setVisible(true);
-            }
-
-            // After 2 seconds, hide the range indicator
-            this.time.delayedCall(2000, () => {
-                if (rangeIndicator) {
-                    rangeIndicator.setVisible(false);
-                }
-            });
-        }
-    }
-
-    // NEW: Fire projectile from a tower to a target
-    fireProjectile(
-        tower: Phaser.GameObjects.Image,
-        target: Phaser.Physics.Arcade.Sprite
-    ) {
-        // Get tower type
-        const towerType = tower.getData("type");
-        const towerData = this.towerTypes[towerType];
-
-        // Get positions
-        const startX = tower.x;
-        const startY = tower.y;
-        const targetX = target.x;
-        const targetY = target.y;
-
-        // Calculate angle to target
-        const angle = Phaser.Math.Angle.Between(
-            startX,
-            startY,
-            targetX,
-            targetY
-        );
-
-        // Rotate tower turret to face target
-        const turret = tower.getData("turret");
-        if (turret) {
-            turret.setRotation(angle);
-        }
-
-        // Create projectile
-        let projectile;
-        if (towerType === "laser") {
-            // Lasers are instant hit, so create a line
-            const distance = Phaser.Math.Distance.Between(
-                startX,
-                startY,
-                targetX,
-                targetY
-            );
-            const line = this.add.line(
-                0,
-                0,
-                startX,
-                startY,
-                targetX,
-                targetY,
-                0x00ffff
-            );
-            line.setLineWidth(2);
-            line.setOrigin(0, 0);
-
-            // Flash and remove
-            this.time.delayedCall(100, () => line.destroy());
-
-            // Directly damage enemy (instant hit)
-            this.onProjectileHit(
-                {
-                    destroy: () => {},
-                    getData: (key: string) =>
-                        key === "damage" ? tower.getData("damage") : null,
-                    x: targetX,
-                    y: targetY,
-                } as any,
-                target
-            );
-
-            return;
-        } else {
-            // For other towers, create a moving projectile
-            const projectileTexture =
-                towerType === "missile" ? "missile" : "bullet";
-            projectile = this.add.image(startX, startY, projectileTexture);
-            projectile.setData("damage", tower.getData("damage"));
-
-            // Set rotation to match direction
-            projectile.setRotation(angle);
-
-            // Move projectile to target with tweens
-            const speed = tower.getData("projectileSpeed");
-            const distance = Phaser.Math.Distance.Between(
-                startX,
-                startY,
-                targetX,
-                targetY
-            );
-            const duration = (distance / speed) * 1000;
-
-            this.tweens.add({
-                targets: projectile,
-                x: targetX,
-                y: targetY,
-                duration: duration,
-                onComplete: () => {
-                    // Check if target is still valid
-                    if (target.active) {
-                        this.onProjectileHit(projectile, target);
-                    } else {
-                        projectile.destroy();
-                    }
-                },
-            });
-        }
-    }
-
     // FIX: Implemented tower shooting in update
-    update(time: number, delta: number) {
-        // Only process tower targeting every 100ms to improve performance
-        if (time - this.lastUpdate < 100) return;
-        this.lastUpdate = time;
+    update(time, delta) {
+        // Handle keyboard control movements
+        if (this.controls) {
+            this.controls.update(delta);
+        }
 
-        // Process each tower for targeting
-        this.towers.forEach((tower) => {
-            // Check if tower can attack (cooldown)
+        // Skip if game is paused or there are no enemies
+        if (!this.enemies || this.enemies.length === 0) return;
+
+        // Update each tower
+        for (const tower of this.towers) {
+            // Calculate time since last fired
             const lastFired = tower.getData("lastFired") || 0;
             const fireRate = tower.getData("fireRate");
 
+            // Check if tower can fire
             if (time - lastFired >= fireRate) {
-                // Find nearest enemy in range
+                // Find target in range
                 const range = tower.getData("range");
-                let closestEnemy = null;
-                let closestDistance = range;
+                const towerX = tower.x;
+                const towerY = tower.y;
 
-                this.enemies.forEach((enemy) => {
+                let target = null;
+                let closestDistance = Infinity;
+
+                // Find the closest enemy in range
+                for (const enemy of this.enemies) {
                     const distance = Phaser.Math.Distance.Between(
-                        tower.x,
-                        tower.y,
+                        towerX,
+                        towerY,
                         enemy.x,
                         enemy.y
                     );
 
-                    if (distance < closestDistance) {
-                        closestEnemy = enemy;
+                    if (distance <= range && distance < closestDistance) {
                         closestDistance = distance;
+                        target = enemy;
                     }
-                });
+                }
 
-                // If an enemy is in range, fire at it
-                if (closestEnemy) {
-                    this.fireProjectile(tower, closestEnemy);
-                    tower.setData("lastFired", time);
+                // If target found, fire at it
+                if (target) {
+                    this.towerFire(tower, target, time);
                 }
             }
-        });
-    }
-
-    // Methods called from UI scene
-    startTowerPlacement(towerType: string) {
-        this.selectedTower = towerType;
-        this.placingTower = true;
-
-        // Update preview
-        this.towerPreview.setTexture("tower_base");
-        this.towerPreview.setVisible(true);
-
-        // Update turret preview
-        const turretPreview = this.towerPreview.getData("turretPreview");
-        turretPreview.setTexture(this.towerTypes[towerType].sprite);
-        turretPreview.setVisible(true);
-    }
-
-    cancelTowerPlacement() {
-        this.placingTower = false;
-        this.towerPreview.setVisible(false);
-
-        // Also hide turret preview
-        const turretPreview = this.towerPreview.getData("turretPreview");
-        if (turretPreview) {
-            turretPreview.setVisible(false);
         }
     }
 }
