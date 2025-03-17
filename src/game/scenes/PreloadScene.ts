@@ -23,9 +23,24 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image("tower_portal", "assets/base/base-7.png");
 
         // Load tower assets
-        this.load.image("tower_turret", "assets/towers/tower-turret.png");
-        this.load.image("tower_laser", "assets/towers/tower-laser.png");
-        this.load.image("tower_missile", "assets/towers/tower-missile.png");
+        this.load.image("solder_fire", "assets/defenders/solder-fire.png");
+        this.load.image("solder_idle", "assets/defenders/solder-idle.png");
+        this.load.image(
+            "turret_laser_fire",
+            "assets/defenders/turret-laser-fire.png"
+        );
+        this.load.image(
+            "turret_laser_idle",
+            "assets/defenders/turret-laser-idle.png"
+        );
+        this.load.image(
+            "solder_heavy_fire",
+            "assets/defenders/solder-heavy-fire.png"
+        );
+        this.load.image(
+            "solder_heavy_idle",
+            "assets/defenders/solder-heavy-idle.png"
+        );
 
         // Load enemies assets
         this.load.spritesheet(

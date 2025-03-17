@@ -208,7 +208,7 @@ export class GameScene extends Phaser.Scene {
                 fireRate: 1000, // ms between shots
                 projectileSpeed: 300,
                 projectileSprite: "bullet",
-                sprite: "tower_turret",
+                sprite: "solder",
             },
             laser: {
                 name: "Laser",
@@ -218,7 +218,7 @@ export class GameScene extends Phaser.Scene {
                 fireRate: 200,
                 projectileSpeed: 500,
                 projectileSprite: "laser",
-                sprite: "tower_laser",
+                sprite: "turret_laser",
             },
             missile: {
                 name: "Missile",
@@ -228,7 +228,7 @@ export class GameScene extends Phaser.Scene {
                 fireRate: 2000,
                 projectileSpeed: 200,
                 projectileSprite: "missile",
-                sprite: "tower_missile",
+                sprite: "solder_heavy",
             },
         };
 
@@ -836,7 +836,7 @@ export class GameScene extends Phaser.Scene {
 
             // Update tower preview texture based on selected tower
             this.towerPreview.setTexture(
-                this.towerTypes[this.towerSelected].sprite
+                `${this.towerTypes[this.towerSelected].sprite}_idle`
             );
 
             // Check if player has enough credits
@@ -921,7 +921,7 @@ export class GameScene extends Phaser.Scene {
         const tower = this.add.image(
             x,
             y,
-            this.towerTypes[this.towerSelected].sprite
+            `${this.towerTypes[this.towerSelected].sprite}_idle`
         );
         tower.setDepth(10); // Make sure it appears above other elements
 
@@ -1075,18 +1075,18 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Rotate tower to face target
-        tower.setRotation(angle);
+        // tower.setRotation(angle);
+
+        // Simple left/right direction check with rotation
+        if (targetX < startX) {
+            tower.setFlipX(true);
+        } else {
+            tower.setFlipX(false);
+        }
 
         // Create projectile
         let projectile;
         if (towerType === "laser") {
-            // Lasers are instant hit, so create a line
-            const distance = Phaser.Math.Distance.Between(
-                startX,
-                startY,
-                targetX,
-                targetY
-            );
             const line = this.add.line(
                 0,
                 0,
@@ -1270,6 +1270,7 @@ export class GameScene extends Phaser.Scene {
 
         // Update each tower
         for (const tower of this.towers) {
+            const towerType = tower.getData("type");
             // Calculate time since last fired
             const lastFired = tower.getData("lastFired") || 0;
             const fireRate = tower.getData("fireRate");
@@ -1301,7 +1302,14 @@ export class GameScene extends Phaser.Scene {
 
                 // If target found, fire at it
                 if (target) {
+                    tower.setTexture(
+                        `${this.towerTypes[towerType].sprite}_fire`
+                    );
                     this.towerFire(tower, target, time);
+                } else {
+                    tower.setTexture(
+                        `${this.towerTypes[towerType].sprite}_idle`
+                    );
                 }
             }
         }
