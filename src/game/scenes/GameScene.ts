@@ -1,12 +1,20 @@
+import {
+    ExitLocation,
+    SpawnLocation,
+    TowerLocation,
+    Path,
+    Wave,
+} from "../../types/GameTypes";
+
 export class GameScene extends Phaser.Scene {
     gridSize: number;
     gridWidth: number;
     gridHeight: number;
 
     map: Phaser.Tilemaps.Tilemap;
-    exitLocations: any[];
-    spawnLocations: any[];
-    towerLocations: any[];
+    exitLocations: ExitLocation[];
+    spawnLocations: SpawnLocation[];
+    towerLocations: TowerLocation[];
 
     zoomFactor: number;
     minZoom: number;
@@ -14,13 +22,13 @@ export class GameScene extends Phaser.Scene {
     controls: Phaser.Cameras.Controls.SmoothedKeyControl;
     cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
-    paths: any[];
+    paths: Path[];
     pathsActive: Map<number, any[]>;
 
     enemies: any[];
     enemyGroup: Phaser.GameObjects.Group;
 
-    waves: any[];
+    waves: Wave[];
     waveCurrent: number;
     waveInProgress: boolean;
 
@@ -156,10 +164,12 @@ export class GameScene extends Phaser.Scene {
             {
                 spawn: 1,
                 exit: 1,
+                id: 1,
             },
             {
                 spawn: 2,
                 exit: 2,
+                id: 2,
             },
         ];
 
@@ -167,6 +177,7 @@ export class GameScene extends Phaser.Scene {
             {
                 enemies: [{ type: "alien", count: 8, delay: 2000 }],
                 reward: 50,
+                path: 1,
             },
             {
                 enemies: [
@@ -174,6 +185,7 @@ export class GameScene extends Phaser.Scene {
                     { type: "pirate", count: 1, delay: 3000 },
                 ],
                 reward: 75,
+                path: 2,
             },
             {
                 enemies: [
@@ -182,6 +194,7 @@ export class GameScene extends Phaser.Scene {
                     { type: "monster", count: 1, delay: 5000 },
                 ],
                 reward: 100,
+                path: 1,
             },
         ];
 
