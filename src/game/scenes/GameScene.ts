@@ -625,34 +625,36 @@ export class GameScene extends Phaser.Scene {
                 health = window.gameSettings.enemyHealth;
                 speed = window.gameSettings.enemySpeed;
                 value = 10;
-                textureKey = "enemy_alien_static";
+                textureKey = "enemy_alien";
                 break;
 
             case "pirate":
                 health = window.gameSettings.enemyHealth * 1.5;
                 speed = window.gameSettings.enemySpeed * 0.8;
                 value = 15;
-                textureKey = "enemy_pirate_static";
+                textureKey = "enemy_pirate";
                 break;
 
             case "monster":
                 health = window.gameSettings.enemyHealth * 3;
                 speed = window.gameSettings.enemySpeed * 0.6;
                 value = 25;
-                textureKey = "enemy_monster_static";
+                textureKey = "enemy_monster";
                 break;
 
             default:
                 health = window.gameSettings.enemyHealth;
                 speed = window.gameSettings.enemySpeed;
                 value = 10;
-                textureKey = "enemy_alien_static";
+                textureKey = "enemy_alien";
                 break;
         }
 
         // Create the enemy sprite
         enemy = this.physics.add.sprite(x, y, textureKey);
         enemy.setDepth(10); // Set depth to appear above path and bases
+
+        enemy.play(`${textureKey}_walk`);
 
         // Apply difficulty modifier if needed
         if (
@@ -676,7 +678,7 @@ export class GameScene extends Phaser.Scene {
         enemy.setData("path", path);
 
         // Add health bar
-        const healthBar = this.add.rectangle(x, y - 20, 40, 5, 0x00ff00);
+        const healthBar = this.add.rectangle(x, y + 50, 40, 5, 0x00ff00);
         healthBar.setDepth(11);
         enemy.setData("healthBar", healthBar);
 
@@ -727,7 +729,7 @@ export class GameScene extends Phaser.Scene {
             this.tweens.add({
                 targets: enemy.getData("healthBar"),
                 x: targetX,
-                y: targetY - 20,
+                y: targetY + 50,
                 duration: duration,
             });
         } else {

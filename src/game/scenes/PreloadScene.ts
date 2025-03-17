@@ -28,9 +28,21 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image("tower_missile", "assets/towers/tower-missile.png");
 
         // Load enemies assets
-        this.load.image("enemy_alien_static", "assets/enemies/alien.png");
-        this.load.image("enemy_pirate_static", "assets/enemies/pirate.png");
-        this.load.image("enemy_monster_static", "assets/enemies/monster.png");
+        this.load.spritesheet(
+            "enemy_alien",
+            "assets/enemies/alien-tile-map.png",
+            { frameWidth: 128, frameHeight: 128 }
+        );
+        this.load.spritesheet(
+            "enemy_pirate",
+            "assets/enemies/pirate-tile-map.png",
+            { frameWidth: 128, frameHeight: 128 }
+        );
+        this.load.spritesheet(
+            "enemy_monster",
+            "assets/enemies/monster-tile-map.png",
+            { frameWidth: 128, frameHeight: 128 }
+        );
 
         // Load projectiles
         this.load.image("bullet", "assets/projectiles/bullet.png");
@@ -72,7 +84,7 @@ export class PreloadScene extends Phaser.Scene {
         // Only create animations if we have the frames
         if (hasSpriteFrames.alien) {
             this.anims.create({
-                key: "alien_walk",
+                key: "enemy_alien_walk",
                 frames: this.anims.generateFrameNumbers("enemy_alien", {
                     start: 0,
                     end: 3,
@@ -84,7 +96,7 @@ export class PreloadScene extends Phaser.Scene {
 
         if (hasSpriteFrames.pirate) {
             this.anims.create({
-                key: "pirate_walk",
+                key: "enemy_pirate_walk",
                 frames: this.anims.generateFrameNumbers("enemy_pirate", {
                     start: 0,
                     end: 3,
@@ -96,7 +108,7 @@ export class PreloadScene extends Phaser.Scene {
 
         if (hasSpriteFrames.monster) {
             this.anims.create({
-                key: "monster_walk",
+                key: "enemy_monster_walk",
                 frames: this.anims.generateFrameNumbers("enemy_monster", {
                     start: 0,
                     end: 3,

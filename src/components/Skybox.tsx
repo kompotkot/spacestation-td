@@ -89,8 +89,8 @@ const Skybox: React.FC = () => {
         const animate = () => {
             requestAnimationFrame(animate);
 
-            skybox.rotation.x += 0.000001;
-            skybox.rotation.y += 0.00001; // Slow rotation speed
+            skybox.rotation.x += 0.000005;
+            skybox.rotation.y += 0.00005; // Slow rotation speed
 
             renderer.render(scene, camera);
         };
