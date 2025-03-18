@@ -1,4 +1,6 @@
 export class MenuScene extends Phaser.Scene {
+    sessionId: number;
+
     constructor() {
         super("MenuScene");
     }
@@ -44,10 +46,24 @@ export class MenuScene extends Phaser.Scene {
         );
         walletText.setOrigin(0.5);
 
+        // Add session number
+        const session = window.gameSettings?.sessions || null;
+        const sessionText = this.add.text(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2 + 30,
+            `Sessions: ${session}`,
+            {
+                font: "18px JetBrains Mono",
+                color: "#ffcc00",
+                align: "center",
+            }
+        );
+        sessionText.setOrigin(0.5);
+
         // Add start button
         const startButton = this.add.rectangle(
             this.cameras.main.width / 2,
-            this.cameras.main.height / 2 + 50,
+            this.cameras.main.height / 2 + 80,
             200,
             60,
             0x0066aa
@@ -56,7 +72,7 @@ export class MenuScene extends Phaser.Scene {
 
         const startText = this.add.text(
             this.cameras.main.width / 2,
-            this.cameras.main.height / 2 + 50,
+            this.cameras.main.height / 2 + 80,
             "START GAME",
             {
                 font: "bold 24px JetBrains Mono",
@@ -76,8 +92,8 @@ export class MenuScene extends Phaser.Scene {
         });
 
         // Start game when clicked
-        startButton.on("pointerdown", () => {
-            this.startGame();
+        startButton.on("pointerdown", async () => {
+            await this.startGame();
         });
 
         // Add instructions
@@ -103,7 +119,9 @@ export class MenuScene extends Phaser.Scene {
         // }
     }
 
-    startGame() {
+    async startGame() {
+        console.log(123);
+
         // Stop menu music
         this.sound.stopAll();
 

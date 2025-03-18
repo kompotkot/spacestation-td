@@ -7,6 +7,8 @@ import React, {
 } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 
+import { useGameContract } from "../hooks/useGameContracts";
+
 // TODO: Not correctly functional, can duplicate sometimes game instances
 // verify it code with TD.tsx and fix it
 
@@ -15,6 +17,7 @@ interface GameContextType {
     setGameInstance: (game: any | null) => void;
     destroyGame: () => void;
     address: string | null;
+    sessions: number | null;
 }
 
 const GameContext = createContext<GameContextType>({
@@ -22,6 +25,7 @@ const GameContext = createContext<GameContextType>({
     setGameInstance: () => {},
     destroyGame: () => {},
     address: null,
+    sessions: null,
 });
 
 export const useGame = () => useContext(GameContext);
@@ -32,18 +36,34 @@ interface GameProviderProps {
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [gameInstance, setGameInstance] = useState<any | null>(null);
+    const [sessions, setSessions] = useState<number | null>(null);
 
-    const { address } = useAppKitAccount();
+    const gameContract = useGameContract();
+    const { address, isConnected } = useAppKitAccount();
 
     const destroyGame = () => {
         if (gameInstance) {
-            console.log("Destroying game instance");
+            console.log("[INFO] Destroying game instance");
             gameInstance.destroy(true);
             setGameInstance(null);
         }
     };
 
     useEffect(() => {
+        if (!isConnected) return;
+        const loadContractData = async () => {
+            const data = await gameContract.getTotalSessions();
+            setSessions(Number(data));
+        };
+
+        loadContractData();
+    }, [isConnected]);
+
+    useEffect(() => {
+        if (!window.gameContract) {
+            window.gameContract = gameContract;
+        }
+
         // Initialize global game settings
         if (!window.gameSettings) {
             window.gameSettings = {
@@ -52,9 +72,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 health: 100,
                 waveCount: 1,
                 enemyHealth: 100,
-                enemySpeed: 1000,
+                enemySpeed: 100,
                 difficultyModifier: 1.2,
                 address: address,
+                sessions: sessions,
                 camera: {
                     zoomFactor: 0.5,
                     minZoom: 0.5,
@@ -79,7 +100,26 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 menuScene.scene.restart();
             }
         }
-    }, [address, gameInstance]);
+    }, [gameContract, address, gameInstance, sessions]);
+
+    useEffect(() => {
+        console.log("[INFO] Number of total session updated:", sessions);
+
+        if (window.gameSettings) {
+            window.gameSettings.sessions = sessions;
+        }
+
+        // Update the game instance with the new session
+        if (gameInstance && gameInstance.registry) {
+            gameInstance.registry.set("session", sessions);
+
+            // Refresh the menu scene if it's active
+            const menuScene = gameInstance.scene.getScene("MenuScene");
+            if (menuScene && menuScene.scene.isActive()) {
+                menuScene.scene.restart();
+            }
+        }
+    }, [sessions, gameInstance]);
 
     return (
         <GameContext.Provider
@@ -88,6 +128,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 setGameInstance,
                 destroyGame,
                 address,
+                sessions,
             }}
         >
             {children}

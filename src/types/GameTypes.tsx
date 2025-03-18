@@ -8,6 +8,7 @@ export interface GameSettings {
     difficultyModifier: number;
     address: string;
     camera: GameSettingsCamera;
+    sessions: number;
 }
 
 export interface GameSettingsCamera {
