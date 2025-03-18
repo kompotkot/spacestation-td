@@ -52,7 +52,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 health: 100,
                 waveCount: 1,
                 enemyHealth: 100,
-                enemySpeed: 100,
+                enemySpeed: 1000,
                 difficultyModifier: 1.2,
                 address: address,
                 camera: {

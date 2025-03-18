@@ -540,8 +540,7 @@ export class GameScene extends Phaser.Scene {
             this.waveCurrent++;
         } else {
             console.log("[INFO] All waves completed!");
-
-            // Game won or next level logic
+            this.gameOver();
         }
     }
 
@@ -568,7 +567,7 @@ export class GameScene extends Phaser.Scene {
             this.cameras.main.height / 2,
             `Wave ${window.gameSettings.waveCount} Complete!\nNext wave in 10 seconds`,
             {
-                font: "bold 30px Arial",
+                font: "bold 30px JetBrains Mono",
                 color: "#ffffff",
                 align: "center",
                 stroke: "#000000",
@@ -1211,8 +1210,28 @@ export class GameScene extends Phaser.Scene {
     }
 
     gameOver() {
+        console.log("[INFO] Game Over");
+
         // Stop gameplay
+        // Pause the physics - this should stop physics bodies
         this.physics.pause();
+
+        // If you have any tweens running, stop them
+        this.tweens.pauseAll();
+
+        // If you have any timers or events, remove them
+        this.time.removeAllEvents();
+
+        // Find all game objects and stop their movement that might not be using the physics system
+        const gameObjects = this.children.list;
+        gameObjects.forEach((obj) => {
+            // If the object has velocity properties, set them to zero
+            if (obj.body) {
+                obj.body.velocity.x = 0;
+                obj.body.velocity.y = 0;
+            }
+        });
+
         this.input.off("pointerdown");
 
         // Show game over message
@@ -1221,7 +1240,7 @@ export class GameScene extends Phaser.Scene {
             this.cameras.main.height / 2,
             "GAME OVER",
             {
-                font: "bold 60px Arial",
+                font: "bold 60px JetBrains Mono",
                 color: "#ff0000",
                 stroke: "#000000",
                 strokeThickness: 6,
@@ -1236,9 +1255,9 @@ export class GameScene extends Phaser.Scene {
             this.cameras.main.height / 2 + 80,
             "Return to Menu",
             {
-                font: "bold 30px Arial",
+                font: "bold 30px JetBrains Mono",
                 color: "#ffffff",
-                // backgroundColor: "#660000",
+                backgroundColor: "#660000",
                 padding: {
                     left: 20,
                     right: 20,
@@ -1267,6 +1286,10 @@ export class GameScene extends Phaser.Scene {
 
         // Skip if game is paused or there are no enemies
         if (!this.enemies || this.enemies.length === 0) return;
+
+        if (this.health <= 0) {
+            this.gameOver();
+        }
 
         // Update each tower
         for (const tower of this.towers) {
