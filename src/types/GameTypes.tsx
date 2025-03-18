@@ -6,9 +6,7 @@ export interface GameSettings {
     enemyHealth: number;
     enemySpeed: number;
     difficultyModifier: number;
-    address: string;
     camera: GameSettingsCamera;
-    sessions: number;
 }
 
 export interface GameSettingsCamera {

@@ -1,5 +1,7 @@
 export class MenuScene extends Phaser.Scene {
     sessionId: number;
+    loadingText: Phaser.GameObjects.Text | null = null;
+    loadingAnimation: Phaser.Tweens.Tween | null = null;
 
     constructor() {
         super("MenuScene");
@@ -33,7 +35,7 @@ export class MenuScene extends Phaser.Scene {
         subtitle.setOrigin(0.5);
 
         // Add wallet address display
-        const walletAddress = window.gameSettings?.address || "Not Connected";
+        const walletAddress = window.gameContract?.address || "Not Connected";
         const walletText = this.add.text(
             this.cameras.main.width / 2,
             this.cameras.main.height / 2,
@@ -47,11 +49,11 @@ export class MenuScene extends Phaser.Scene {
         walletText.setOrigin(0.5);
 
         // Add session number
-        const session = window.gameSettings?.sessions || null;
+        const session = window.gameContract?.playerLatestSession || null;
         const sessionText = this.add.text(
             this.cameras.main.width / 2,
             this.cameras.main.height / 2 + 30,
-            `Sessions: ${session}`,
+            `Player latest session number: ${session}`,
             {
                 font: "18px JetBrains Mono",
                 color: "#ffcc00",
@@ -119,19 +121,133 @@ export class MenuScene extends Phaser.Scene {
         // }
     }
 
+    showLoadingMessage(message) {
+        // Hide any existing loading message
+        this.hideLoadingMessage();
+
+        // Create background for better visibility
+        const bg = this.add.rectangle(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            this.cameras.main.width * 0.8,
+            80,
+            0x000000,
+            0.7
+        );
+
+        // Create the loading text
+        this.loadingText = this.add
+            .text(
+                this.cameras.main.width / 2,
+                this.cameras.main.height / 2,
+                message,
+                { fontSize: "24px", color: "#ffffff" }
+            )
+            .setOrigin(0.5);
+
+        // Add a dot animation to show progress
+        this.loadingAnimation = this.tweens.add({
+            targets: this.loadingText,
+            alpha: { from: 1, to: 0.6 },
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            onUpdate: () => {
+                // Animated dots to show activity
+                const dots = ".".repeat(Math.floor((this.time.now / 500) % 4));
+                this.loadingText.setText(message + dots);
+            },
+        });
+
+        return { text: this.loadingText, bg: bg };
+    }
+
+    hideLoadingMessage() {
+        if (this.loadingText) {
+            if (this.loadingAnimation) {
+                this.loadingAnimation.stop();
+                this.loadingAnimation = null;
+            }
+
+            // Get the background if it exists (it's the previous object in the display list)
+            const index = this.children.getIndex(this.loadingText);
+            if (index > 0) {
+                const bg = this.children.getAt(index - 1);
+                if (bg) bg.destroy();
+            }
+
+            this.loadingText.destroy();
+            this.loadingText = null;
+        }
+    }
+
+    showErrorMessage(message) {
+        // Hide any loading message
+        this.hideLoadingMessage();
+
+        // Create background for better visibility
+        const bg = this.add.rectangle(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            this.cameras.main.width * 0.8,
+            80,
+            0x000000,
+            0.7
+        );
+
+        const errorText = this.add
+            .text(
+                this.cameras.main.width / 2,
+                this.cameras.main.height / 2,
+                message,
+                { fontSize: "24px", color: "#ff0000", align: "center" }
+            )
+            .setOrigin(0.5);
+
+        // Auto-hide after 3 seconds
+        this.time.delayedCall(3000, () => {
+            errorText.destroy();
+            bg.destroy();
+        });
+    }
+
     async startGame() {
-        console.log(123);
+        console.log("[INFO] Starting game process...");
+        const gameContract = window.gameContract;
 
-        // Stop menu music
-        this.sound.stopAll();
+        if (!gameContract || !gameContract.isConnected) {
+            console.error("[ERROR] Wallet not connected");
+            this.showErrorMessage("Please connect your wallet to play");
+            return;
+        }
 
-        // Reset game settings
-        const gameSettings = window.gameSettings;
-        gameSettings.credits = 100;
-        gameSettings.waveCount = 1;
+        // Show loading message
+        this.showLoadingMessage("Initiating blockchain transaction");
 
-        // Start game scenes
-        this.scene.start("GameScene");
-        this.scene.launch("UIScene");
+        try {
+            console.log("[INFO] Calling startGameSession");
+            // Call the contract function to start a game session
+            await gameContract.startGameSession();
+
+            console.log("[INFO] Transaction successful, starting game");
+            // Hide the loading message
+            this.hideLoadingMessage();
+
+            // Stop menu music
+            this.sound.stopAll();
+
+            // Reset game settings
+            const gameSettings = window.gameSettings;
+            gameSettings.credits = 100;
+            gameSettings.waveCount = 1;
+
+            // Start game scenes
+            this.scene.start("GameScene");
+            this.scene.launch("UIScene");
+        } catch (error) {
+            console.error("[ERROR] Failed to start game session:", error);
+            this.hideLoadingMessage();
+            this.showErrorMessage("Failed to start game. Please try again.");
+        }
     }
 }
