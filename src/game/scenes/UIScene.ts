@@ -1,5 +1,11 @@
 // This is a simplified version of the UI scene for Next.js integration
 
+import { Defender } from "../../types/GameTypes";
+import {
+    GAME_DEFENDER_HEAVY_SOLDER,
+    GAME_DEFENDER_SOLDER,
+    GAME_DEFENDER_TURRET_LASER,
+} from "../../utils/settings";
 import { GameScene } from "./GameScene";
 
 export class UIScene extends Phaser.Scene {
@@ -16,11 +22,13 @@ export class UIScene extends Phaser.Scene {
     infoText: Phaser.GameObjects.Text;
     towerButtons: Phaser.GameObjects.Rectangle[];
     towerInfoPanel: Phaser.GameObjects.Container;
-    towerTypeText: Phaser.GameObjects.Text;
+    defenderText: Phaser.GameObjects.Text;
     towerStatsText: Phaser.GameObjects.Text;
 
     waveStartButton: any;
     waveStartButtonText: any;
+
+    defenders: Record<string, Defender>;
 
     constructor() {
         super("UIScene");
@@ -36,6 +44,13 @@ export class UIScene extends Phaser.Scene {
 
         this.waveStartButton = null;
         this.waveStartButtonText = null;
+
+        // TODO: Remove from here
+        this.defenders = {
+            solder: GAME_DEFENDER_SOLDER,
+            turret_laser: GAME_DEFENDER_TURRET_LASER,
+            heavy_solder: GAME_DEFENDER_HEAVY_SOLDER,
+        };
     }
 
     create() {
@@ -113,112 +128,77 @@ export class UIScene extends Phaser.Scene {
     }
 
     createTowerSelectionButtons() {
-        // Define tower types from game scene
-        const towerTypes = {
-            turret: {
-                name: "Turret",
-                cost: 25,
-                damage: 20,
-                range: 192,
-                fireRate: 500,
-            },
-            laser: {
-                name: "Laser",
-                cost: 50,
-                damage: 10,
-                range: 256,
-                fireRate: 200,
-            },
-            missile: {
-                name: "Missile",
-                cost: 75,
-                damage: 50,
-                range: 320,
-                fireRate: 2000,
-            },
-        };
-
-        // Tower selection buttons
-        const buttonY = this.cameras.main.height - 45;
+        const buttonY = this.cameras.main.height - 30;
         let buttonX = 100;
 
-        // Create a button for each tower type
-        Object.keys(towerTypes).forEach((type, index) => {
-            const tower = towerTypes[type as keyof typeof towerTypes];
+        this.towerButtons = [];
 
-            // Create button background
-            const button = this.add.rectangle(buttonX, buttonY, 150, 70);
-            button.setStrokeStyle(2, 0xffffff);
-            button.setInteractive({ useHandCursor: true });
+        Object.entries(this.defenders).forEach(([key, defender]) => {
+            // Determine initial stroke color based on affordability
+            const isAffordable = this.credits >= defender.cost;
+            const defaultStroke = isAffordable ? 0x00aa00 : 0x666666; // Green if affordable, Grey if not
 
-            // Tower name and cost
-            this.add.text(buttonX - 20, buttonY - 15, tower.name, {
+            // Create button outline (no background)
+            const button = this.add
+                .rectangle(buttonX, buttonY, 150, 55)
+                .setStrokeStyle(2, defaultStroke)
+                .setInteractive({ useHandCursor: isAffordable });
+
+            // Display defender name and cost
+            this.add.text(buttonX - 60, buttonY - 15, defender.name, {
                 font: "16px JetBrains Mono",
                 color: "#ffffff",
             });
 
             const costText = this.add.text(
-                buttonX - 20,
+                buttonX - 60,
                 buttonY + 5,
-                `Cost: ${tower.cost}`,
+                `Cost: ${defender.cost}`,
                 {
                     font: "14px JetBrains Mono",
-                    color: "#ffff00",
+                    color: isAffordable ? "#ffff00" : "#ff6666",
                 }
             );
 
-            button.setData("costText", costText);
-            button.setData("towerType", type);
+            // Store button data
+            button.setData({ costText, defender: key });
 
-            // Button hover effect
+            // Button hover effects
             button.on("pointerover", () => {
-                button.setStrokeStyle(2, 0xff0000);
-
-                // Show hover info
+                if (this.credits >= defender.cost) {
+                    button.setStrokeStyle(2, 0x66ff66); // Light green when hovered
+                }
                 this.infoText.setText(
-                    `${tower.name}: Damage ${tower.damage}, Range ${
-                        tower.range / 64
-                    } tiles, Rate ${tower.fireRate}ms`
+                    `${defender.name}: Damage ${defender.damage}, Range ${
+                        defender.range / 64
+                    } tiles, Rate ${defender.fireRate}ms`
                 );
             });
 
             button.on("pointerout", () => {
-                button.setStrokeStyle(2, 0xffffff);
-
+                button.setStrokeStyle(2, isAffordable ? 0x00aa00 : 0x666666); // Reset stroke
                 this.infoText.setText("");
             });
 
-            // Button click handler
+            // Button click
             button.on("pointerdown", () => {
-                if (this.credits >= tower.cost) {
-                    // Tell game scene to start tower placement
-                    this.selectTower(type);
-
-                    // Update button appearance
-                    this.towerButtons.forEach((b) => {
-                        b.setFillStyle(0x666666);
-                    });
-                    button.setFillStyle(0x00aa00);
+                if (isAffordable) {
+                    this.selectTower(key);
+                    this.towerButtons.forEach((b) =>
+                        b.setStrokeStyle(2, 0x666666)
+                    ); // Reset other buttons
+                    button.setStrokeStyle(2, 0x00aa00); // Selected button
                 }
             });
 
-            // Store button reference
             this.towerButtons.push(button);
-
-            // Increment x position for next button
             buttonX += 170;
         });
 
-        // Add cancel button - simplified implementation
-        const cancelButton = this.add.rectangle(
-            buttonX,
-            buttonY,
-            100,
-            70,
-            0x990000,
-            1
-        );
-        cancelButton.setInteractive({ useHandCursor: true });
+        const cancelButton = this.add
+            .rectangle(buttonX, buttonY, 100, 55)
+            .setStrokeStyle(2, 0x990000)
+            .setInteractive({ useHandCursor: true });
 
         this.add
             .text(buttonX, buttonY, "Cancel", {
@@ -227,9 +207,9 @@ export class UIScene extends Phaser.Scene {
             })
             .setOrigin(0.5);
 
-        // Button click handler
         cancelButton.on("pointerdown", () => {
             this.cancelTowerSelection();
+            this.towerButtons.forEach((b) => b.setStrokeStyle(2, 0x00aa00));
         });
     }
 
@@ -245,14 +225,14 @@ export class UIScene extends Phaser.Scene {
         const infoBg = this.add.rectangle(0, 0, 180, 200, 0x333333, 0.8);
         this.towerInfoPanel.add(infoBg);
 
-        // Tower type text
-        this.towerTypeText = this.add
+        // Defenders text
+        this.defenderText = this.add
             .text(0, -80, "Tower Info", {
                 font: "bold 18px JetBrains Mono",
                 color: "#ffffff",
             })
             .setOrigin(0.5);
-        this.towerInfoPanel.add(this.towerTypeText);
+        this.towerInfoPanel.add(this.defenderText);
 
         // Stats text
         this.towerStatsText = this.add
@@ -375,7 +355,7 @@ export class UIScene extends Phaser.Scene {
             this.towerInfoPanel.setVisible(true);
 
             // Update panel content
-            this.towerTypeText.setText(
+            this.defenderText.setText(
                 data.type.charAt(0).toUpperCase() + data.type.slice(1)
             );
 
@@ -393,30 +373,32 @@ export class UIScene extends Phaser.Scene {
     }
 
     updateTowerButtons() {
-        // Update tower buttons based on affordability
         this.towerButtons.forEach((button) => {
-            const towerType = button.getData("towerType");
-            const cost =
-                towerType === "turret" ? 25 : towerType === "laser" ? 50 : 75;
+            const defenderKey = button.getData("defender");
+            const defender = this.defenders[defenderKey];
             const costText = button.getData("costText");
 
+            if (!defender) return; // Safety check
+
             // Update color based on affordability
-            if (this.credits >= cost) {
-                button.setStrokeStyle(2, 0xffffff);
+            if (this.credits >= defender.cost) {
+                button.setStrokeStyle(2, 0x00aa00); // Green (affordable)
                 costText.setColor("#ffff00");
+                button.setInteractive({ useHandCursor: true });
             } else {
-                button.setStrokeStyle(2, 0x444444);
+                button.setStrokeStyle(2, 0x666666); // Grey (not enough credits)
                 costText.setColor("#ff6666");
+                button.disableInteractive();
             }
         });
     }
 
-    selectTower(towerType: string) {
-        this.selectedTower = towerType;
+    selectTower(defender: string) {
+        this.selectedTower = defender;
 
         // Tell game scene to start placement
         const gameScene = this.scene.get("GameScene") as GameScene;
-        gameScene.towerStartPlacement(towerType);
+        gameScene.towerStartPlacement(defender);
     }
 
     cancelTowerSelection() {

@@ -5,8 +5,14 @@ import {
     Path,
     Wave,
     Enemy,
+    Defender,
 } from "../../types/GameTypes";
-import { GAME_WAVES } from "../../utils/settings";
+import {
+    GAME_DEFENDER_HEAVY_SOLDER,
+    GAME_DEFENDER_SOLDER,
+    GAME_DEFENDER_TURRET_LASER,
+    GAME_WAVES,
+} from "../../utils/settings";
 
 export class GameScene extends Phaser.Scene {
     gridSize: number;
@@ -48,7 +54,7 @@ export class GameScene extends Phaser.Scene {
     towerSelected: string | null;
     towerPlacing: boolean;
     towerPreview: Phaser.GameObjects.Image;
-    towerTypes: any;
+    defenders: Record<string, Defender>;
 
     rangeIndicator: any;
 
@@ -182,37 +188,10 @@ export class GameScene extends Phaser.Scene {
         this.waves = GAME_WAVES;
 
         // Define tower types
-        this.towerTypes = {
-            turret: {
-                name: "Turret",
-                cost: 25,
-                damage: 20,
-                range: 3,
-                fireRate: 1000, // ms between shots
-                projectileSpeed: 300,
-                projectileSprite: "bullet",
-                sprite: "solder",
-            },
-            laser: {
-                name: "Laser",
-                cost: 50,
-                damage: 5,
-                range: 2,
-                fireRate: 200,
-                projectileSpeed: 500,
-                projectileSprite: "laser",
-                sprite: "turret_laser",
-            },
-            missile: {
-                name: "Missile",
-                cost: 75,
-                damage: 50,
-                range: 5,
-                fireRate: 2000,
-                projectileSpeed: 200,
-                projectileSprite: "missile",
-                sprite: "solder_heavy",
-            },
+        this.defenders = {
+            solder: GAME_DEFENDER_SOLDER,
+            turret_laser: GAME_DEFENDER_TURRET_LASER,
+            heavy_solder: GAME_DEFENDER_HEAVY_SOLDER,
         };
 
         this.rangeIndicator = this.add.circle(0, 0, 100, 0xffffff, 0.2);
@@ -736,13 +715,13 @@ export class GameScene extends Phaser.Scene {
 
             // Update tower preview texture based on selected tower
             this.towerPreview.setTexture(
-                `${this.towerTypes[this.towerSelected].sprite}_idle`
+                `${this.defenders[this.towerSelected].sprite}_idle`
             );
 
             // Check if player has enough credits
             const canAfford =
                 window.gameSettings.credits >=
-                this.towerTypes[this.towerSelected].cost;
+                this.defenders[this.towerSelected].cost;
 
             // Change tint based on affordability
             this.towerPreview.setTint(canAfford ? 0xffffff : 0xff6666);
@@ -763,7 +742,7 @@ export class GameScene extends Phaser.Scene {
             // Show and position range indicator
             this.rangeIndicator.setPosition(x, y);
             this.rangeIndicator.setRadius(
-                this.towerTypes[this.towerSelected].range * this.gridSize
+                this.defenders[this.towerSelected].range * this.gridSize
             );
             this.rangeIndicator.setVisible(true);
             this.rangeIndicator.setAlpha(0.2);
@@ -785,7 +764,7 @@ export class GameScene extends Phaser.Scene {
             return;
 
         // Check if player has enough credits
-        const towerCost = this.towerTypes[this.towerSelected].cost;
+        const towerCost = this.defenders[this.towerSelected].cost;
         if (window.gameSettings.credits < towerCost) {
             console.log("[INFO] Not enough credits to place tower");
             // Optional: Show notification to player
@@ -831,15 +810,15 @@ export class GameScene extends Phaser.Scene {
         const tower = this.add.image(
             x,
             y,
-            `${this.towerTypes[this.towerSelected].sprite}_idle`
+            `${this.defenders[this.towerSelected].sprite}_idle`
         );
         tower.setDepth(10); // Make sure it appears above other elements
 
         // Store tower data
-        tower.setData("type", this.towerSelected);
-        tower.setData("damage", this.towerTypes[this.towerSelected].damage);
-        tower.setData("range", this.towerTypes[this.towerSelected].range);
-        tower.setData("fireRate", this.towerTypes[this.towerSelected].fireRate);
+        tower.setData("defender", this.towerSelected);
+        tower.setData("damage", this.defenders[this.towerSelected].damage);
+        tower.setData("range", this.defenders[this.towerSelected].range);
+        tower.setData("fireRate", this.defenders[this.towerSelected].fireRate);
         tower.setData("lastFired", 0);
         tower.setData("gridX", gridX);
         tower.setData("gridY", gridY);
@@ -850,7 +829,7 @@ export class GameScene extends Phaser.Scene {
         this.towers.push(tower);
 
         // Subtract the cost from player's credits
-        window.gameSettings.credits -= this.towerTypes[this.towerSelected].cost;
+        window.gameSettings.credits -= this.defenders[this.towerSelected].cost;
 
         // Update UI
         this.events.emit("updateUI", {
@@ -877,33 +856,33 @@ export class GameScene extends Phaser.Scene {
         return tower;
     }
 
-    towerStartPlacement(towerType) {
+    towerStartPlacement(defender) {
         // Create preview image if it doesn't exist
         if (!this.towerPreview) {
             this.towerPreview = this.add.image(
                 0,
                 0,
-                this.towerTypes[towerType].sprite
+                this.defenders[defender].sprite
             );
             this.towerPreview.setAlpha(0.7);
             this.towerPreview.setVisible(false);
             this.towerPreview.setDepth(20); // Set depth to ensure it appears above other elements
         } else {
-            this.towerPreview.setTexture(this.towerTypes[towerType].sprite);
+            this.towerPreview.setTexture(this.defenders[defender].sprite);
         }
 
         // Setup input handlers
         this.input.on("pointermove", this.towerPlacePointerMove, this);
         this.input.on("pointerdown", this.towerPlacePointerDown, this);
 
-        this.towerSelected = towerType;
+        this.towerSelected = defender;
         this.towerPlacing = true;
 
         // Show tower cost notification
-        const cost = this.towerTypes[towerType].cost;
+        const cost = this.defenders[defender].cost;
         this.events.emit(
             "showNotification",
-            `Select location for ${towerType} (Cost: ${cost})`
+            `Select location for ${defender} (Cost: ${cost})`
         );
     }
 
@@ -969,8 +948,8 @@ export class GameScene extends Phaser.Scene {
     // Fire projectile from a tower to a target
     fireProjectile(tower, target) {
         // Get tower type
-        const towerType = tower.getData("type");
-        const towerData = this.towerTypes[towerType];
+        const defender = tower.getData("defender");
+        const towerData = this.defenders[defender];
 
         // Get positions
         const startX = tower.x;
@@ -998,7 +977,8 @@ export class GameScene extends Phaser.Scene {
 
         // Create projectile
         let projectile;
-        if (towerType === "laser") {
+        if (this.defenders[defender].projectileSprite === "laser") {
+            // Laser is an instant-hit line
             const line = this.add.line(
                 0,
                 0,
@@ -1014,13 +994,13 @@ export class GameScene extends Phaser.Scene {
             // Flash and remove
             this.time.delayedCall(100, () => line.destroy());
 
-            // Directly damage enemy (instant hit)
+            // Instant damage
             this.fireOnProjectileHit(
                 {
                     destroy: () => {},
                     getData: (key) =>
                         key === "damage"
-                            ? this.towerTypes[towerType].damage
+                            ? this.defenders[defender].damage
                             : null,
                     x: targetX,
                     y: targetY,
@@ -1029,18 +1009,62 @@ export class GameScene extends Phaser.Scene {
             );
 
             return;
+        }
+
+        // Create moving projectile
+        const projectileTexture = this.defenders[defender].projectileSprite;
+        projectile = this.add.image(startX, startY, projectileTexture);
+        projectile.setData("damage", this.defenders[defender].damage);
+        projectile.setData("target", target); // Store target in projectile
+        projectile.setData("speed", this.defenders[defender].projectileSpeed);
+
+        // Rotate towards the initial target position
+        projectile.setRotation(angle);
+
+        if (this.defenders[defender].projectileSprite === "missile") {
+            // HOMING MISSILE LOGIC
+            projectile.setData("isHoming", true);
+
+            // Update function for homing behavior
+            this.physics.world.on("worldstep", () => {
+                if (!projectile.active) {
+                    projectile.destroy();
+                    return;
+                }
+
+                const targetX = target.x;
+                const targetY = target.y;
+                const speed = projectile.getData("speed");
+
+                // Calculate direction
+                const angle = Phaser.Math.Angle.Between(
+                    projectile.x,
+                    projectile.y,
+                    targetX,
+                    targetY
+                );
+                projectile.setRotation(angle);
+
+                // Move missile slightly toward the target each frame
+                projectile.x += Math.cos(angle) * (speed / 60);
+                projectile.y += Math.sin(angle) * (speed / 60);
+
+                // Check if missile has reached the target
+                if (
+                    Phaser.Math.Distance.Between(
+                        projectile.x,
+                        projectile.y,
+                        targetX,
+                        targetY
+                    ) < 10
+                ) {
+                    this.fireOnProjectileHit(projectile, target);
+                    projectile.destroy();
+                }
+            });
         } else {
-            // For other towers, create a moving projectile
-            const projectileTexture =
-                towerType === "missile" ? "missile" : "bullet";
-            projectile = this.add.image(startX, startY, projectileTexture);
-            projectile.setData("damage", this.towerTypes[towerType].damage);
-
-            // Set rotation to match direction
-            projectile.setRotation(angle);
-
-            // Move projectile to target with tweens
-            const speed = this.towerTypes[towerType].projectileSpeed;
+            // Standard bullet behavior (non-homing)
+            const speed = this.defenders[defender].projectileSpeed;
             const distance = Phaser.Math.Distance.Between(
                 startX,
                 startY,
@@ -1055,12 +1079,10 @@ export class GameScene extends Phaser.Scene {
                 y: targetY,
                 duration: duration,
                 onComplete: () => {
-                    // Check if target is still valid
                     if (target.active) {
                         this.fireOnProjectileHit(projectile, target);
-                    } else {
-                        projectile.destroy();
                     }
+                    projectile.destroy();
                 },
             });
         }
@@ -1076,23 +1098,29 @@ export class GameScene extends Phaser.Scene {
         // Deal damage
         const damage = projectile.getData("damage");
         const currentHealth = enemy.getData("health");
-        const newHealth = currentHealth - damage;
+        const newHealth = Math.max(0, currentHealth - damage); // Ensure health never goes below 0
 
         // Update enemy health
         enemy.setData("health", newHealth);
 
         // Update health bar
         const healthBar = enemy.getData("healthBar");
-        const healthPercentage = newHealth / enemy.getData("maxHealth");
+        const maxHealth = enemy.getData("maxHealth");
+        const healthPercentage = newHealth / maxHealth;
         const barWidth = 50 * Math.max(0, healthPercentage);
-        healthBar.width = barWidth;
 
-        // Change color based on health percentage
-        if (healthPercentage < 0.3) {
-            healthBar.fillColor = 0xff0000; // Red
-        } else if (healthPercentage < 0.6) {
-            healthBar.fillColor = 0xffff00; // Yellow
-        }
+        // Force update width and color
+        healthBar.setSize(barWidth, healthBar.height);
+        healthBar.setFillStyle(
+            healthPercentage < 0.3
+                ? 0xff0000
+                : healthPercentage < 0.6
+                ? 0xdc6803
+                : 0x00ff00
+        );
+
+        // Explicitly refresh the health bar position (if needed)
+        healthBar.x = enemy.x - 25 + barWidth / 2; // Adjust position if needed
 
         // Create impact effect
         const impact = this.add.circle(
@@ -1213,7 +1241,7 @@ export class GameScene extends Phaser.Scene {
 
         // Update each tower
         for (const tower of this.towers) {
-            const towerType = tower.getData("type");
+            const defender = tower.getData("defender");
             // Calculate time since last fired
             const lastFired = tower.getData("lastFired") || 0;
             const fireRate = tower.getData("fireRate");
@@ -1245,14 +1273,10 @@ export class GameScene extends Phaser.Scene {
 
                 // If target found, fire at it
                 if (target) {
-                    tower.setTexture(
-                        `${this.towerTypes[towerType].sprite}_fire`
-                    );
+                    tower.setTexture(`${this.defenders[defender].sprite}_fire`);
                     this.towerFire(tower, target, time);
                 } else {
-                    tower.setTexture(
-                        `${this.towerTypes[towerType].sprite}_idle`
-                    );
+                    tower.setTexture(`${this.defenders[defender].sprite}_idle`);
                 }
             }
         }

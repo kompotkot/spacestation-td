@@ -8,7 +8,7 @@ export const GAME_DEFENDER_SOLDER = {
     damage: 20,
     range: 3,
     fireRate: 1000,
-    projectileSpeed: 300,
+    projectileSpeed: 2000,
     projectileSprite: "bullet",
 
     sprite: "solder",
