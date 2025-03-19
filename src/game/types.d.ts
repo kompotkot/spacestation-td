@@ -6,7 +6,7 @@ declare global {
     interface Window {
         gameContract?: {
             startGameSession: () => Promise<unknown | null>;
-            completeGameSession: (sessionId: string) => Promise<unknown | null>;
+            completeGameSession: (sessionId: number) => Promise<unknown | null>;
             getPlayerLatestSession: () => Promise<number | null>;
             isConnected: boolean;
             address: string | null | undefined;

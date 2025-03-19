@@ -47,6 +47,8 @@ export class GameScene extends Phaser.Scene {
     towerPreview: Phaser.GameObjects.Image;
     towerTypes: any;
 
+    rangeIndicator: any;
+
     // gameMusic: Phaser.Sound.BaseSound;
     // hasSpriteFrames: any;
 
@@ -176,7 +178,7 @@ export class GameScene extends Phaser.Scene {
         this.waves = [
             {
                 enemies: [{ type: "alien", count: 8, delay: 2000 }],
-                reward: 50,
+                reward: 10,
                 path: 1,
             },
             {
@@ -184,7 +186,7 @@ export class GameScene extends Phaser.Scene {
                     { type: "alien", count: 8, delay: 1500 },
                     { type: "pirate", count: 1, delay: 3000 },
                 ],
-                reward: 75,
+                reward: 50,
                 path: 2,
             },
             {
@@ -214,7 +216,7 @@ export class GameScene extends Phaser.Scene {
                 name: "Laser",
                 cost: 50,
                 damage: 10,
-                range: 4 * this.gridSize,
+                range: 2 * this.gridSize,
                 fireRate: 200,
                 projectileSpeed: 500,
                 projectileSprite: "laser",
@@ -231,6 +233,9 @@ export class GameScene extends Phaser.Scene {
                 sprite: "solder_heavy",
             },
         };
+
+        this.rangeIndicator = this.add.circle(0, 0, 100, 0xffffff, 0.2);
+        this.rangeIndicator.setVisible(false);
 
         // // Get animation availability information from the registry
         // this.hasSpriteFrames = this.registry.get("hasSpriteFrames") || {
@@ -858,9 +863,19 @@ export class GameScene extends Phaser.Scene {
                 // Hide the portal
                 hoverLocation.portalSprite.setAlpha(0);
             }
+
+            // Show and position range indicator
+            this.rangeIndicator.setPosition(x, y);
+            this.rangeIndicator.setRadius(
+                this.towerTypes[this.towerSelected].range
+            );
+            this.rangeIndicator.setVisible(true);
+            this.rangeIndicator.setAlpha(0.2);
+            this.rangeIndicator.setDepth(100);
         } else {
             // No valid location found, hide preview
             this.towerPreview.setVisible(false);
+            this.rangeIndicator.setVisible(false);
         }
     }
 
@@ -932,6 +947,8 @@ export class GameScene extends Phaser.Scene {
         tower.setData("lastFired", 0);
         tower.setData("gridX", gridX);
         tower.setData("gridY", gridY);
+
+        this.rangeIndicator.setVisible(false);
 
         // Add to tower group and list
         this.towers.push(tower);
@@ -1269,8 +1286,15 @@ export class GameScene extends Phaser.Scene {
         menuButton.setOrigin(0.5);
         menuButton.setInteractive({ useHandCursor: true });
         menuButton.on("pointerdown", () => {
-            this.scene.start("MenuScene");
+            const onGameOver = this.game.registry.get("onGameOver");
+
+            // Check if the callback exists and call it
+            if (typeof onGameOver === "function") {
+                onGameOver();
+            }
+
             this.scene.stop("UIScene");
+            this.scene.stop(); // Stop the current scene
         });
 
         // Notify UI

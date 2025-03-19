@@ -145,8 +145,13 @@ export class PreloadScene extends Phaser.Scene {
             });
         }
 
-        // Proceed to menu
-        this.scene.start("MenuScene");
+        try {
+            // Start game scenes
+            this.scene.start("GameScene");
+            this.scene.launch("UIScene");
+        } catch (error) {
+            console.error("[ERROR] Failed to start game session:", error);
+        }
     }
 
     // Helper method to check if a spritesheet has enough frames

@@ -7,6 +7,7 @@ interface TDProps {
     gameStarted: boolean;
     width: number;
     height: number;
+    onGameOver?: () => void;
 }
 
 const TD: React.FC<TDProps> = ({
@@ -14,6 +15,7 @@ const TD: React.FC<TDProps> = ({
     gameStarted,
     width,
     height,
+    onGameOver,
 }) => {
     const gameRef = useRef<HTMLDivElement>(null);
     const { setGameInstance } = useGame();
@@ -31,14 +33,12 @@ const TD: React.FC<TDProps> = ({
             const PreloadSceneModule = await import(
                 "../game/scenes/PreloadScene"
             );
-            const MenuSceneModule = await import("../game/scenes/MenuScene");
             const GameSceneModule = await import("../game/scenes/GameScene");
             const UISceneModule = await import("../game/scenes/UIScene");
 
             // Get the scene classes
             const BootScene = BootSceneModule.BootScene;
             const PreloadScene = PreloadSceneModule.PreloadScene;
-            const MenuScene = MenuSceneModule.MenuScene;
             const GameScene = GameSceneModule.GameScene;
             const UIScene = UISceneModule.UIScene;
 
@@ -64,7 +64,7 @@ const TD: React.FC<TDProps> = ({
                 width: gameWidth,
                 height: gameHeight,
                 parent: gameRef.current,
-                scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene],
+                scene: [BootScene, PreloadScene, GameScene, UIScene],
                 transparent: true,
                 physics: {
                     default: "arcade", // TODO: Migrate to "matter"
@@ -96,6 +96,12 @@ const TD: React.FC<TDProps> = ({
 
             // Initialize the game
             const game = new Phaser.Game(config);
+
+            game.registry.set("onGameOver", () => {
+                if (onGameOver) {
+                    onGameOver();
+                }
+            });
 
             // Set loaded state once the game is initialized
             setGameLoaded(true);

@@ -29,8 +29,10 @@ export function useGameContract() {
         number | null
     >(null);
     const [isTransactionPending, setIsTransactionPending] = useState(false);
-    const [pendingPromiseResolvers, setPendingPromiseResolvers] =
-        useState(null);
+    const [pendingPromiseResolvers, setPendingPromiseResolvers] = useState<{
+        resolve: (value: any) => void;
+        reject: (reason?: any) => void;
+    } | null>(null);
 
     // Get the write contract function from wagmi
     const {
@@ -40,10 +42,13 @@ export function useGameContract() {
         isSuccess,
         data: transactionData,
         error: transactionError,
+        reset: resetWriteContract,
     } = useWriteContract();
 
-    // Watch for transaction state changes
+    // Watch for transaction state changes and handle user rejections
     useEffect(() => {
+        // Early return if no transaction is happening
+        if (!isPending && !isError && !isSuccess) return;
         if (isSuccess && pendingPromiseResolvers) {
             console.log("[INFO] Transaction succeeded:", transactionData);
             setIsTransactionPending(false);
@@ -51,11 +56,34 @@ export function useGameContract() {
             setPendingPromiseResolvers(null);
         }
 
-        if (isError && pendingPromiseResolvers) {
+        if (isError) {
             console.warn("[WARN] Transaction failed:", transactionError);
             setIsTransactionPending(false);
-            pendingPromiseResolvers.reject(transactionError);
-            setPendingPromiseResolvers(null);
+
+            // Check if error is user rejection
+            const errorMessage = transactionError?.message || "";
+            const isUserRejection =
+                errorMessage.includes("User rejected") ||
+                errorMessage.includes("user rejected") ||
+                errorMessage.includes("rejected the request");
+
+            if (isUserRejection) {
+                console.log("[INFO] User rejected transaction in wallet");
+            }
+
+            // Only attempt to reject the promise if pendingPromiseResolvers exists
+            if (pendingPromiseResolvers) {
+                if (isUserRejection) {
+                    // pendingPromiseResolvers.reject(new Error("User rejected the transaction"));
+                    console.log("rejected tx");
+                } else {
+                    pendingPromiseResolvers.reject(transactionError);
+                }
+                setPendingPromiseResolvers(null);
+            }
+
+            // Always reset the contract state
+            resetWriteContract();
         }
     }, [
         isSuccess,
@@ -63,6 +91,7 @@ export function useGameContract() {
         transactionData,
         transactionError,
         pendingPromiseResolvers,
+        resetWriteContract,
     ]);
 
     const usePlayerLatestSession = useReadContract({
@@ -114,6 +143,7 @@ export function useGameContract() {
                     if (isTransactionPending) {
                         setIsTransactionPending(false);
                         setPendingPromiseResolvers(null);
+                        resetWriteContract();
                         console.error(
                             "[ERROR] Game session transaction timed out"
                         );
@@ -132,9 +162,12 @@ export function useGameContract() {
         });
     };
 
-    const completeGameSession = (sessionId) => {
+    const completeGameSession = (sessionId: number) => {
         return new Promise((resolve, reject) => {
             try {
+                // Reset any previous state
+                resetWriteContract();
+
                 // Store the promise resolvers for use when transaction completes
                 setPendingPromiseResolvers({ resolve, reject });
                 setIsTransactionPending(true);
@@ -154,6 +187,7 @@ export function useGameContract() {
                     if (isTransactionPending) {
                         setIsTransactionPending(false);
                         setPendingPromiseResolvers(null);
+                        resetWriteContract();
                         console.error(
                             "[ERROR] Game session completion timed out"
                         );
@@ -161,13 +195,27 @@ export function useGameContract() {
                     }
                 }, 120000); // 2 minutes timeout
 
-                // Clear timeout on unmount
+                // Return a cleanup function
                 return () => clearTimeout(timeoutId);
-            } catch (error) {
+            } catch (error: any) {
                 setIsTransactionPending(false);
                 setPendingPromiseResolvers(null);
+                resetWriteContract();
+
+                // Log and format the error
                 console.error("[ERROR] Error completing game session:", error);
-                reject(error);
+
+                // Check if it's a user rejection
+                if (
+                    error?.message?.includes("User rejected") ||
+                    error?.message?.includes("user rejected") ||
+                    error?.message?.includes("rejected the request")
+                ) {
+                    console.log("rejected tx");
+                    // reject(new Error("User rejected the transaction"));
+                } else {
+                    reject(error);
+                }
             }
         });
     };
