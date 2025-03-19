@@ -33,12 +33,6 @@ const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
 
             console.log("[INFO] Transaction successful, starting game");
 
-            // Reset game settings
-            if (window.gameSettings) {
-                window.gameSettings.credits = 50;
-                window.gameSettings.waveCount = 1;
-            }
-
             // Start game scenes
             onStartGame();
         } catch (error) {

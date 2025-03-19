@@ -4,7 +4,9 @@ import {
     TowerLocation,
     Path,
     Wave,
+    Enemy,
 } from "../../types/GameTypes";
+import { GAME_WAVES } from "../../utils/settings";
 
 export class GameScene extends Phaser.Scene {
     gridSize: number;
@@ -31,6 +33,7 @@ export class GameScene extends Phaser.Scene {
     waves: Wave[];
     waveCurrent: number;
     waveInProgress: boolean;
+    wavePendingStacks: number;
 
     health: number;
 
@@ -77,6 +80,7 @@ export class GameScene extends Phaser.Scene {
         this.waves = [];
         this.waveCurrent = 0;
         this.waveInProgress = false;
+        this.wavePendingStacks = 0;
 
         this.health = window.gameSettings.health;
 
@@ -175,30 +179,7 @@ export class GameScene extends Phaser.Scene {
             },
         ];
 
-        this.waves = [
-            {
-                enemies: [{ type: "alien", count: 8, delay: 2000 }],
-                reward: 10,
-                path: 1,
-            },
-            {
-                enemies: [
-                    { type: "alien", count: 8, delay: 1500 },
-                    { type: "pirate", count: 1, delay: 3000 },
-                ],
-                reward: 50,
-                path: 2,
-            },
-            {
-                enemies: [
-                    { type: "alien", count: 10, delay: 1000 },
-                    { type: "pirate", count: 3, delay: 2000 },
-                    { type: "monster", count: 1, delay: 5000 },
-                ],
-                reward: 100,
-                path: 1,
-            },
-        ];
+        this.waves = GAME_WAVES;
 
         // Define tower types
         this.towerTypes = {
@@ -206,7 +187,7 @@ export class GameScene extends Phaser.Scene {
                 name: "Turret",
                 cost: 25,
                 damage: 20,
-                range: 3 * this.gridSize,
+                range: 3,
                 fireRate: 1000, // ms between shots
                 projectileSpeed: 300,
                 projectileSprite: "bullet",
@@ -215,8 +196,8 @@ export class GameScene extends Phaser.Scene {
             laser: {
                 name: "Laser",
                 cost: 50,
-                damage: 10,
-                range: 2 * this.gridSize,
+                damage: 5,
+                range: 2,
                 fireRate: 200,
                 projectileSpeed: 500,
                 projectileSprite: "laser",
@@ -226,7 +207,7 @@ export class GameScene extends Phaser.Scene {
                 name: "Missile",
                 cost: 75,
                 damage: 50,
-                range: 5 * this.gridSize,
+                range: 5,
                 fireRate: 2000,
                 projectileSpeed: 200,
                 projectileSprite: "missile",
@@ -259,7 +240,7 @@ export class GameScene extends Phaser.Scene {
 
         this.enemyPathsSetup();
 
-        this.waveStartNext();
+        this.events.emit("waveComplete");
 
         // Setup mouse wheel for zooming
         this.input.on("wheel", this.handleMouseWheel, this);
@@ -483,73 +464,42 @@ export class GameScene extends Phaser.Scene {
     }
 
     waveStartNext() {
-        if (this.waveCurrent < this.waves.length) {
-            this.waveInProgress = true;
-            const wave = this.waves[this.waveCurrent];
+        if (this.waveCurrent >= this.waves.length) {
+            console.log("[INFO] All waves completed!");
+            this.gameOver();
+            return;
+        }
 
-            // Process each spawn point
-            this.spawnLocations.forEach((spawn) => {
-                // Only spawn if this spawn point has a valid path
-                if (this.pathsActive.has(spawn.id)) {
-                    // Process each enemy type in the wave
-                    let typeIndex = 0;
+        this.waveInProgress = true;
+        this.wavePendingStacks = 0; // Track enemy spawns that are scheduled
 
-                    const spawnNextType = () => {
-                        if (typeIndex < wave.enemies.length) {
-                            const enemyType = wave.enemies[typeIndex];
-                            let spawned = 0;
+        const wave = this.waves[this.waveCurrent];
 
-                            // Spawn this type of enemy
-                            const enemySpawn = () => {
-                                if (spawned < enemyType.count) {
-                                    this.enemySpawn(enemyType.type, spawn.id);
-                                    spawned++;
-                                    this.time.delayedCall(
-                                        enemyType.delay,
-                                        enemySpawn
-                                    );
-                                } else {
-                                    typeIndex++;
-                                    this.time.delayedCall(1000, spawnNextType);
-                                }
-                            };
+        // Flatten enemy spawns by filtering stacks for active paths
+        wave.stacks
+            .filter((stack) => this.pathsActive.has(stack.pathId))
+            .forEach((stack) => {
+                for (let i = 0; i < stack.count; i++) {
+                    const spawnDelay = i * stack.delay + stack.stackDelay;
 
-                            enemySpawn();
-                        }
-                    };
+                    this.wavePendingStacks++; // Track that an enemy will be spawned
 
-                    spawnNextType();
+                    this.time.delayedCall(spawnDelay, () => {
+                        this.enemySpawn(stack.enemy, stack.pathId);
+                        this.wavePendingStacks--; // Decrease once actually spawned
+                        this.waveCheckComplete(); // Check if wave is done
+                    });
                 }
             });
 
-            // Check if wave is complete after all enemies should be spawned and moved
-            const totalEnemies =
-                wave.enemies.reduce(
-                    (total, enemyType) => total + enemyType.count,
-                    0
-                ) * this.spawnLocations.length;
-            const estimatedWaveTime = 20000; // Adjust based on your game's pace
+        this.events.emit("updateUI", { wave: this.waveCurrent + 1 });
 
-            this.time.delayedCall(
-                estimatedWaveTime,
-                this.waveCheckComplete,
-                [],
-                this
-            );
-
-            // Update UI if needed
-            this.events.emit("updateUI", {
-                wave: this.waveCurrent + 1,
-            });
-
-            this.waveCurrent++;
-        } else {
-            console.log("[INFO] All waves completed!");
-            this.gameOver();
-        }
+        this.waveCurrent++;
     }
 
     waveComplete() {
+        if (!this.waveInProgress) return; // Prevent multiple calls
+
         this.waveInProgress = false;
 
         // Award credits for completing the wave
@@ -562,30 +512,7 @@ export class GameScene extends Phaser.Scene {
         }
 
         // Update UI
-        this.events.emit("updateUI", {
-            credits: window.gameSettings.credits,
-        });
-
-        // Show wave complete message
-        const completeText = this.add.text(
-            this.cameras.main.width / 2,
-            this.cameras.main.height / 2,
-            `Wave ${window.gameSettings.waveCount} Complete!\nNext wave in 10 seconds`,
-            {
-                font: "bold 30px JetBrains Mono",
-                color: "#ffffff",
-                align: "center",
-                stroke: "#000000",
-                strokeThickness: 4,
-            }
-        );
-        completeText.setOrigin(0.5);
-        completeText.setDepth(10);
-
-        // Remove text after a while
-        this.time.delayedCall(3000, () => {
-            completeText.destroy();
-        });
+        this.events.emit("updateUI", { credits: window.gameSettings.credits });
 
         // Prepare next wave
         window.gameSettings.waveCount++;
@@ -594,21 +521,21 @@ export class GameScene extends Phaser.Scene {
         window.gameSettings.enemySpeed *=
             window.gameSettings.difficultyModifier;
 
-        // Start next wave after delay
-        this.time.delayedCall(10000, this.waveStartNext, [], this);
+        this.events.emit("waveComplete");
     }
 
     waveCheckComplete() {
-        // If no enemies left and none spawning, wave is complete
-        if (this.enemies.length === 0) {
+        // A wave is complete only when no enemies exist and no more are waiting to be spawned
+        if (
+            this.waveInProgress &&
+            this.enemies.length === 0 &&
+            this.wavePendingStacks === 0
+        ) {
             this.waveComplete();
-        } else {
-            // Check again later
-            this.time.delayedCall(1000, this.waveCheckComplete, [], this);
         }
     }
 
-    enemySpawn(type: string, spawnId: number) {
+    enemySpawn(enemyData: Enemy, spawnId: number) {
         // Find the spawn location
         const spawn = this.spawnLocations.find((loc) => loc.id === spawnId);
 
@@ -619,46 +546,16 @@ export class GameScene extends Phaser.Scene {
         const x = spawn.x * this.gridSize + this.gridSize / 2;
         const y = spawn.y * this.gridSize + this.gridSize / 2;
 
-        // Create enemy based on type
-        let enemy;
-        let health, speed, value;
-        let textureKey;
-
-        switch (type) {
-            case "alien":
-                health = window.gameSettings.enemyHealth;
-                speed = window.gameSettings.enemySpeed;
-                value = 10;
-                textureKey = "enemy_alien";
-                break;
-
-            case "pirate":
-                health = window.gameSettings.enemyHealth * 1.5;
-                speed = window.gameSettings.enemySpeed * 0.8;
-                value = 15;
-                textureKey = "enemy_pirate";
-                break;
-
-            case "monster":
-                health = window.gameSettings.enemyHealth * 3;
-                speed = window.gameSettings.enemySpeed * 0.6;
-                value = 25;
-                textureKey = "enemy_monster";
-                break;
-
-            default:
-                health = window.gameSettings.enemyHealth;
-                speed = window.gameSettings.enemySpeed;
-                value = 10;
-                textureKey = "enemy_alien";
-                break;
-        }
+        let health = enemyData.health;
+        let speed = enemyData.speed;
+        let reward = enemyData.reward;
+        let sprite = enemyData.sprite;
 
         // Create the enemy sprite
-        enemy = this.physics.add.sprite(x, y, textureKey);
+        let enemy = this.physics.add.sprite(x, y, sprite);
         enemy.setDepth(10); // Set depth to appear above path and bases
 
-        enemy.play(`${textureKey}_walk`);
+        enemy.play(`${sprite}_walk`);
 
         // Apply difficulty modifier if needed
         if (
@@ -672,11 +569,11 @@ export class GameScene extends Phaser.Scene {
         }
 
         // Setup enemy properties
-        enemy.setData("type", type);
+        enemy.setData("name", enemyData.name);
         enemy.setData("health", health);
         enemy.setData("maxHealth", health);
         enemy.setData("speed", speed);
-        enemy.setData("value", value);
+        enemy.setData("reward", reward);
         enemy.setData("pathIndex", 0);
         enemy.setData("spawnId", spawnId);
         enemy.setData("path", path);
@@ -753,6 +650,8 @@ export class GameScene extends Phaser.Scene {
 
         // Remove enemy
         this.enemyRemove(enemy);
+
+        this.waveCheckComplete();
     }
 
     enemyRemove(enemy: Phaser.Physics.Arcade.Sprite) {
@@ -773,10 +672,7 @@ export class GameScene extends Phaser.Scene {
         // Destroy sprite
         enemy.destroy();
 
-        // Check if wave is complete
-        if (this.enemies.length === 0 && !this.waveInProgress) {
-            this.waveCheckComplete();
-        }
+        this.waveCheckComplete();
     }
 
     towerPlacePointerMove(pointer) {
@@ -867,7 +763,7 @@ export class GameScene extends Phaser.Scene {
             // Show and position range indicator
             this.rangeIndicator.setPosition(x, y);
             this.rangeIndicator.setRadius(
-                this.towerTypes[this.towerSelected].range
+                this.towerTypes[this.towerSelected].range * this.gridSize
             );
             this.rangeIndicator.setVisible(true);
             this.rangeIndicator.setAlpha(0.2);
@@ -1214,7 +1110,7 @@ export class GameScene extends Phaser.Scene {
         // Check if enemy defeated
         if (newHealth <= 0) {
             // Award credits
-            window.gameSettings.credits += enemy.getData("value");
+            window.gameSettings.credits += enemy.getData("reward");
 
             // Update UI
             this.events.emit("updateUI", {
@@ -1325,7 +1221,7 @@ export class GameScene extends Phaser.Scene {
             // Check if tower can fire
             if (time - lastFired >= fireRate) {
                 // Find target in range
-                const range = tower.getData("range");
+                const range = tower.getData("range") * this.gridSize;
                 const towerX = tower.x;
                 const towerY = tower.y;
 

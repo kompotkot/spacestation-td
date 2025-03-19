@@ -80,7 +80,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         if (!window.gameSettings) {
             window.gameSettings = {
                 gridSize: 128,
-                credits: 50,
+                credits: 25,
                 health: 100,
                 waveCount: 1,
                 enemyHealth: 100,

@@ -19,6 +19,9 @@ export class UIScene extends Phaser.Scene {
     towerTypeText: Phaser.GameObjects.Text;
     towerStatsText: Phaser.GameObjects.Text;
 
+    waveStartButton: any;
+    waveStartButtonText: any;
+
     constructor() {
         super("UIScene");
     }
@@ -30,6 +33,9 @@ export class UIScene extends Phaser.Scene {
         this.wave = window.gameSettings.waveCount;
         this.selectedTower = null;
         this.towerButtons = [];
+
+        this.waveStartButton = null;
+        this.waveStartButtonText = null;
     }
 
     create() {
@@ -45,6 +51,8 @@ export class UIScene extends Phaser.Scene {
 
         // Listen for events from game scene
         this.listenToEvents();
+
+        this.createWaveStartButton();
     }
 
     // Create UI panel
@@ -257,6 +265,54 @@ export class UIScene extends Phaser.Scene {
         this.towerInfoPanel.add(this.towerStatsText);
     }
 
+    createWaveStartButton() {
+        // Button position
+        const buttonX = this.cameras.main.width - 150;
+        const buttonY = this.cameras.main.height - 45;
+
+        // Create button background
+        const startWaveButton = this.add.rectangle(
+            buttonX,
+            buttonY,
+            150,
+            50,
+            0x008800
+        );
+        startWaveButton.setStrokeStyle(2, 0xffffff);
+        startWaveButton.setInteractive({ useHandCursor: true });
+
+        // Button text
+        const buttonText = this.add
+            .text(buttonX, buttonY, "Start Wave", {
+                font: "18px JetBrains Mono",
+                color: "#ffffff",
+            })
+            .setOrigin(0.5);
+
+        // Handle button click
+        startWaveButton.on("pointerdown", () => {
+            const gameScene = this.scene.get("GameScene") as GameScene;
+
+            if (!gameScene.waveInProgress) {
+                gameScene.waveStartNext(); // Start the next wave
+                this.toggleWaveButton(false); // Disable button while wave is active
+            }
+        });
+
+        // Store references for enabling/disabling later
+        this.waveStartButton = startWaveButton;
+        this.waveStartButtonText = buttonText;
+    }
+
+    // Enable/Disable the wave start button
+    toggleWaveButton(enabled: boolean) {
+        if (this.waveStartButton) {
+            this.waveStartButton.setFillStyle(enabled ? 0x008800 : 0x444444);
+            this.waveStartButtonText.setColor(enabled ? "#ffffff" : "#aaaaaa");
+            this.waveStartButton.setInteractive({ useHandCursor: enabled });
+        }
+    }
+
     listenToEvents() {
         // Listen for UI updates from game scene
         this.scene.get("GameScene").events.on("updateUI", (data: any) => {
@@ -286,6 +342,31 @@ export class UIScene extends Phaser.Scene {
                 this.wave = data.wave;
                 this.waveText.setText(`Wave: ${this.wave}`);
             }
+        });
+
+        this.scene.get("GameScene").events.on("waveComplete", () => {
+            // Show wave complete message
+            const completeText = this.add.text(
+                this.cameras.main.width / 2,
+                this.cameras.main.height / 2,
+                `Wave Complete!`,
+                {
+                    font: "bold 30px JetBrains Mono",
+                    color: "#ffffff",
+                    align: "center",
+                    stroke: "#000000",
+                    strokeThickness: 4,
+                }
+            );
+            completeText.setOrigin(0.5);
+            completeText.setDepth(10);
+
+            // Remove text after a while
+            this.time.delayedCall(3000, () => {
+                completeText.destroy();
+            });
+
+            this.toggleWaveButton(true);
         });
 
         // Listen for tower selection events

@@ -52,25 +52,31 @@ export interface Path {
     exit: number;
 }
 
-// export interface Enemy {
-//     id: number;
+export interface Enemy {
+    id: number;
 
-//     name: string;
-//     type: string;
-//     health: number;
-//     speed: number;
-//     reward: number;
-//     count: number;
-//     delay: number;
+    name: string;
+    // type: string;
+    health: number;
+    speed: number;
+    reward: number;
 
-//     sprite: string;
-// }
+    sprite: string;
+}
+
+export interface WaveStack {
+    enemy: Enemy;
+    count: number;
+    delay: number;
+    pathId: number;
+    stackDelay: number;
+}
 
 export interface Wave {
     reward: number;
-    path: number;
+    minStartCredits: number;
 
-    enemies: any[];
+    stacks: WaveStack[];
 }
 
 // export interface Projectile {
@@ -91,14 +97,19 @@ export interface Wave {
 //     projectile: number;
 // }
 
-// export interface Defender {
-//     id: number;
+export interface Defender {
+    id: number;
 
-//     name: string;
-//     type: string;
-//     cost: number;
+    name: string;
+    // type: string;
+    cost: number;
 
-//     weapon: number;
+    // weapon: Weapon;
+    damage: number;
+    range: number;
+    fireRate: number;
+    projectileSpeed: number;
+    projectileSprite: string;
 
-//     sprite: string;
-// }
+    sprite: string;
+}
