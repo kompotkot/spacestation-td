@@ -10,7 +10,7 @@ interface MenuProps {
 const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
     const [loading, setLoading] = useState(false);
 
-    const { address, playerLatestSession } = useGame();
+    const { address, playerLatestSession, isTransactionPending } = useGame();
 
     const handleStartGame = async () => {
         console.log("[INFO] Starting game process...");
@@ -89,26 +89,30 @@ const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
 
             <button
                 onClick={handleStartGame}
-                disabled={loading}
+                disabled={loading || isTransactionPending}
                 style={{
-                    background: "#0066aa",
+                    background:
+                        loading || isTransactionPending ? "#666666" : "#0066aa",
                     color: "#ffffff",
-                    border: `1px solid #0099ff`,
+                    border: `1px solid ${
+                        loading || isTransactionPending ? "#888888" : "#0099ff"
+                    }`,
                     borderRadius: "4px",
                     padding: "10px 20px",
                     fontSize: "24px",
                     fontWeight: "bold",
-                    cursor: loading ? "default" : "pointer",
+                    cursor:
+                        loading || isTransactionPending ? "default" : "pointer",
                     fontFamily: "JetBrains Mono",
                     width: "240px",
                     height: "60px",
                 }}
                 onMouseOver={(e) => {
-                    if (!loading)
+                    if (!loading && !isTransactionPending)
                         e.currentTarget.style.backgroundColor = "#0099ff";
                 }}
                 onMouseOut={(e) => {
-                    if (!loading)
+                    if (!loading && !isTransactionPending)
                         e.currentTarget.style.backgroundColor = "#0066aa";
                 }}
             >
