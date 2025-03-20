@@ -19,7 +19,7 @@ interface GameContextType {
     address: string | null;
     playerLatestSession: number | null;
     isTransactionPending: boolean;
-    availableWave: number;
+    playerMaxFinishedWave: number;
     selectedWave: number;
     setSelectedWave: (number: number | null) => void;
 }
@@ -31,7 +31,7 @@ const GameContext = createContext<GameContextType>({
     address: null,
     playerLatestSession: null,
     isTransactionPending: false,
-    availableWave: 1,
+    playerMaxFinishedWave: 0,
     selectedWave: 1,
     setSelectedWave: (wave: number) => {},
 });
@@ -53,8 +53,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         isTransactionPending,
         playerLatestSession,
         setPlayerLatestSession,
-        availableWave,
-        setAvailableWave,
+        playerMaxFinishedWave,
+        setPlayerMaxFinishedWave,
     } = gameContract;
 
     const destroyGame = () => {
@@ -68,10 +68,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     useEffect(() => {
         if (!isConnected) return;
         const loadContractData = async () => {
-            const data = await gameContract.getPlayerLatestSession();
-            setPlayerLatestSession(Number(data));
+            const playerLatestSessionData =
+                await gameContract.getPlayerLatestSession();
+            setPlayerLatestSession(Number(playerLatestSessionData));
 
-            setAvailableWave(3);
+            const playerMaxFinishedWaveData =
+                await gameContract.getPlayerMaxFinishedWave();
+            setPlayerMaxFinishedWave(Number(playerMaxFinishedWaveData));
         };
 
         loadContractData();
@@ -171,7 +174,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 address,
                 playerLatestSession,
                 isTransactionPending,
-                availableWave,
+                playerMaxFinishedWave,
                 selectedWave,
                 setSelectedWave,
             }}

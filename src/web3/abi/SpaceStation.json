@@ -4,9 +4,34 @@
         "inputs": [
             {
                 "indexed": true,
+                "internalType": "address",
+                "name": "player",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "maxFinishedWave",
+                "type": "uint256"
+            }
+        ],
+        "name": "PlayerMaxWaveUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "sessionID",
                 "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "player",
+                "type": "address"
             }
         ],
         "name": "SessionAborted",
@@ -19,6 +44,18 @@
                 "indexed": true,
                 "internalType": "uint256",
                 "name": "sessionID",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "player",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "maxFinishedWave",
                 "type": "uint256"
             }
         ],
@@ -46,6 +83,12 @@
                 "internalType": "uint256",
                 "name": "sessionID",
                 "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "player",
+                "type": "address"
             }
         ],
         "name": "SessionExpired",
@@ -89,6 +132,11 @@
                 "internalType": "uint256",
                 "name": "sessionID",
                 "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "maxFinishedWave",
+                "type": "uint256"
             }
         ],
         "name": "completeSession",
@@ -100,49 +148,47 @@
         "inputs": [],
         "name": "getInitVersion",
         "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getNumSessions",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
+            { "internalType": "uint256", "name": "", "type": "uint256" }
         ],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [
-            {
-                "internalType": "address",
-                "name": "player",
-                "type": "address"
-            }
+            { "internalType": "address", "name": "player", "type": "address" }
         ],
         "name": "getPlayerLatestSession",
         "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
+            { "internalType": "uint256", "name": "", "type": "uint256" }
         ],
         "stateMutability": "view",
         "type": "function"
     },
     {
         "inputs": [
+            { "internalType": "address", "name": "player", "type": "address" }
+        ],
+        "name": "getPlayerMaxFinishedWave",
+        "outputs": [
+            { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "player", "type": "address" }
+        ],
+        "name": "getPlayerSessionCount",
+        "outputs": [
+            { "internalType": "uint256", "name": "", "type": "uint256" }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "address", "name": "player", "type": "address" },
             {
                 "internalType": "uint256",
                 "name": "sessionID",
@@ -172,6 +218,11 @@
                         "internalType": "address",
                         "name": "player",
                         "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "maxFinishedWave",
+                        "type": "uint256"
                     }
                 ],
                 "internalType": "struct LibSpaceStation.Session",
@@ -186,11 +237,7 @@
         "inputs": [],
         "name": "getSessionExpirationTime",
         "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
+            { "internalType": "uint256", "name": "", "type": "uint256" }
         ],
         "stateMutability": "view",
         "type": "function"

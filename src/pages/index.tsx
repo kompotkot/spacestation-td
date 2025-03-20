@@ -60,8 +60,9 @@ const Index = () => {
         setShowMenu(false);
     };
 
-    const handleGameOver = async () => {
+    const handleGameOver = async (finishedWaves: number) => {
         console.log("[INFO] Game over, returning to menu");
+
         setGameLoaded(false);
         setGameStarted(false);
         destroyGame();
@@ -71,13 +72,17 @@ const Index = () => {
             const gameContract = window.gameContract;
             const latestSession = await gameContract.getPlayerLatestSession();
 
-            console.log(latestSession);
+            await gameContract.completeGameSession(
+                latestSession,
+                finishedWaves
+            );
 
-            await gameContract.completeGameSession(latestSession);
-
-            console.log("[INFO] Transaction successful, completed game");
+            console.log(
+                `[INFO] Transaction successful, completed session ${latestSession} with finished waves ${finishedWaves}`
+            );
 
             await gameContract.getPlayerLatestSession();
+            await gameContract.getPlayerMaxFinishedWave();
         } catch (error) {
             console.error("[ERROR] Failed to complete game session:", error);
         }

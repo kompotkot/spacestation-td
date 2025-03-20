@@ -25,7 +25,9 @@ export function useGameContract() {
     const [playerLatestSession, setPlayerLatestSession] = useState<
         number | null
     >(null);
-    const [availableWave, setAvailableWave] = useState<number>(1);
+    const [playerMaxFinishedWave, setPlayerMaxFinishedWave] = useState<
+        number | null
+    >(null);
     const [isTransactionPending, setIsTransactionPending] = useState(false);
 
     // Refs to store resolvers and timeout IDs (prevents async state issues)
@@ -91,7 +93,6 @@ export function useGameContract() {
         resetWriteContract,
     ]);
 
-    // Read contract function
     const usePlayerLatestSession = useReadContract({
         address: SPACE_STATION_CONTRACT_ADDRESS,
         abi: SpaceStationABI,
@@ -104,12 +105,40 @@ export function useGameContract() {
         try {
             const { data } = await usePlayerLatestSession.refetch();
             if (data) {
-                console.log("[INFO] Latest user session number:", Number(data));
                 setPlayerLatestSession(Number(data));
                 return Number(data);
             }
         } catch (error) {
             console.error("[ERROR] Error getting latest user session", error);
+            return null;
+        }
+    };
+
+    const usePlayerMaxFinishedWave = useReadContract({
+        address: SPACE_STATION_CONTRACT_ADDRESS,
+        abi: SpaceStationABI,
+        functionName: "getPlayerMaxFinishedWave",
+        args: [address as `0x${string}`],
+        query: { enabled: false },
+    });
+
+    const getPlayerMaxFinishedWave = async () => {
+        try {
+            const { data } = await usePlayerMaxFinishedWave.refetch();
+            if (data) {
+                let parsedNum = Number(data);
+                if (!parsedNum || parsedNum < 1) {
+                    parsedNum = 1;
+                }
+                console.log("[INFO] Max finished wave by user:", parsedNum);
+                setPlayerMaxFinishedWave(parsedNum);
+                return parsedNum;
+            }
+        } catch (error) {
+            console.error(
+                "[ERROR] Error getting latest user max finished wave",
+                error
+            );
             return null;
         }
     };
@@ -155,7 +184,7 @@ export function useGameContract() {
 
     // Function to complete a game session
     const completeGameSession = useCallback(
-        (sessionId: number) => {
+        (sessionId: number, maxFinishedWave: number) => {
             return new Promise((resolve, reject) => {
                 try {
                     resetWriteContract();
@@ -167,7 +196,7 @@ export function useGameContract() {
                         address: SPACE_STATION_CONTRACT_ADDRESS,
                         abi: SpaceStationABI,
                         functionName: "completeSession",
-                        args: [sessionId],
+                        args: [sessionId, maxFinishedWave],
                         chain: game7Testnet,
                         account: address as `0x${string}`,
                     });
@@ -213,7 +242,8 @@ export function useGameContract() {
         isTransactionPending,
         playerLatestSession,
         setPlayerLatestSession,
-        availableWave,
-        setAvailableWave,
+        playerMaxFinishedWave,
+        setPlayerMaxFinishedWave,
+        getPlayerMaxFinishedWave,
     };
 }

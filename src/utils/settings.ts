@@ -111,6 +111,20 @@ export const GAME_WAVES: Wave[] = [
                 pathId: 2,
                 stackDelay: 6000,
             },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 1,
+                delay: 1000,
+                pathId: 1,
+                stackDelay: 22000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 1,
+                delay: 1000,
+                pathId: 2,
+                stackDelay: 22000,
+            },
         ],
     },
     // Wave 3

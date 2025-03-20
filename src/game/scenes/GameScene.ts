@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
     waveCurrent: number;
     waveInProgress: boolean;
     wavePendingStacks: number;
+    wavesFinished: number;
 
     health: number;
 
@@ -89,6 +90,7 @@ export class GameScene extends Phaser.Scene {
         this.waveCurrent = window.gameSettings.waveCount;
         this.waveInProgress = false;
         this.wavePendingStacks = 0;
+        this.wavesFinished = window.gameSettings.waveCount - 1;
 
         this.health = window.gameSettings.health;
 
@@ -505,6 +507,8 @@ export class GameScene extends Phaser.Scene {
             wave: this.waveCurrent,
         });
         this.events.emit("waveComplete");
+
+        this.wavesFinished++;
     }
 
     waveCheckComplete() {
@@ -1207,7 +1211,7 @@ export class GameScene extends Phaser.Scene {
 
             // Check if the callback exists and call it
             if (typeof onGameOver === "function") {
-                onGameOver();
+                onGameOver(this.wavesFinished);
             }
 
             this.scene.stop("UIScene");

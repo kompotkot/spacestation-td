@@ -7,7 +7,7 @@ interface TDProps {
     gameStarted: boolean;
     width: number;
     height: number;
-    handleGameOver?: () => void;
+    handleGameOver?: (finishedWaves: number) => void;
 }
 
 const TD: React.FC<TDProps> = ({
@@ -97,10 +97,10 @@ const TD: React.FC<TDProps> = ({
             // Initialize the game
             const game = new Phaser.Game(config);
 
-            game.registry.set("onGameOver", async () => {
+            game.registry.set("onGameOver", async (finishedWaves: number) => {
                 game.destroy(true);
                 setGameLoaded(false);
-                await handleGameOver();
+                await handleGameOver(finishedWaves);
             });
 
             // Set loaded state once the game is initialized

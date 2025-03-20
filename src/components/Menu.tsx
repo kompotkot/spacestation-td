@@ -10,15 +10,23 @@ interface MenuProps {
 
 const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
     const [loading, setLoading] = useState(false);
+    const [availableWave, setAvailableWave] = useState(1);
 
     const {
         address,
         playerLatestSession,
         isTransactionPending,
-        availableWave,
+        playerMaxFinishedWave,
         selectedWave,
         setSelectedWave,
     } = useGame();
+
+    useEffect(() => {
+        if (playerMaxFinishedWave > 0) {
+            setAvailableWave(playerMaxFinishedWave + 1);
+        }
+        console.log(`[INFO] Player available wave set to ${availableWave}`);
+    }, [playerMaxFinishedWave]);
 
     const handleStartGame = async () => {
         console.log("[INFO] Starting game process...");
