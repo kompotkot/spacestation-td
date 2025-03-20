@@ -38,13 +38,14 @@ interface GameProviderProps {
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [gameInstance, setGameInstance] = useState<any | null>(null);
-    const [playerLatestSession, setPlayerLatestSession] = useState<
-        number | null
-    >(null);
 
     const { address, isConnected } = useAppKitAccount();
     const gameContract = useGameContract();
-    const { isTransactionPending } = gameContract;
+    const {
+        isTransactionPending,
+        playerLatestSession,
+        setPlayerLatestSession,
+    } = gameContract;
 
     const destroyGame = () => {
         if (gameInstance) {

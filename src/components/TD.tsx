@@ -7,7 +7,7 @@ interface TDProps {
     gameStarted: boolean;
     width: number;
     height: number;
-    onGameOver?: () => void;
+    handleGameOver?: () => void;
 }
 
 const TD: React.FC<TDProps> = ({
@@ -15,7 +15,7 @@ const TD: React.FC<TDProps> = ({
     gameStarted,
     width,
     height,
-    onGameOver,
+    handleGameOver,
 }) => {
     const gameRef = useRef<HTMLDivElement>(null);
     const { setGameInstance } = useGame();
@@ -97,10 +97,10 @@ const TD: React.FC<TDProps> = ({
             // Initialize the game
             const game = new Phaser.Game(config);
 
-            game.registry.set("onGameOver", () => {
-                if (onGameOver) {
-                    onGameOver();
-                }
+            game.registry.set("onGameOver", async () => {
+                game.destroy(true);
+                setGameLoaded(false);
+                await handleGameOver();
             });
 
             // Set loaded state once the game is initialized

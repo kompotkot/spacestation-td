@@ -59,7 +59,7 @@ const Index = () => {
         setShowMenu(false);
     };
 
-    const handleGameOver = () => {
+    const handleGameOver = async () => {
         console.log("[INFO] Game over, returning to menu");
         setGameLoaded(false);
         setGameStarted(false);
@@ -68,11 +68,15 @@ const Index = () => {
 
         try {
             const gameContract = window.gameContract;
-            // await gameContract.completeGameSession(playerLatestSession);
+            const latestSession = await gameContract.getPlayerLatestSession();
+
+            console.log(latestSession);
+
+            await gameContract.completeGameSession(latestSession);
 
             console.log("[INFO] Transaction successful, completed game");
 
-            // await gameContract.getPlayerLatestSession()
+            await gameContract.getPlayerLatestSession();
         } catch (error) {
             console.error("[ERROR] Failed to complete game session:", error);
         }
@@ -93,7 +97,7 @@ const Index = () => {
                         gameStarted={gameStarted}
                         width={width}
                         height={height}
-                        onGameOver={handleGameOver}
+                        handleGameOver={handleGameOver}
                     />
                 )}
 

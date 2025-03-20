@@ -1,7 +1,6 @@
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useReadContract, useWriteContract } from "wagmi";
-import { useState, useEffect } from "react";
-
+import { useState, useEffect, useRef, useCallback } from "react";
 import SpaceStationABI from "../web3/abi/SpaceStation.json";
 import { game7Testnet } from "../web3/chains";
 
@@ -15,11 +14,9 @@ function validateAddress(address: string | undefined): `0x${string}` {
             "Contract address is not defined in environment variables"
         );
     }
-
     if (!address.startsWith("0x") || address.length !== 42) {
         throw new Error(`Invalid contract address format: ${address}`);
     }
-
     return address as `0x${string}`;
 }
 
@@ -29,12 +26,15 @@ export function useGameContract() {
         number | null
     >(null);
     const [isTransactionPending, setIsTransactionPending] = useState(false);
-    const [pendingPromiseResolvers, setPendingPromiseResolvers] = useState<{
+
+    // Refs to store resolvers and timeout IDs (prevents async state issues)
+    const pendingPromiseResolversRef = useRef<{
         resolve: (value: any) => void;
         reject: (reason?: any) => void;
     } | null>(null);
+    const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Get the write contract function from wagmi
+    // Wagmi transaction handlers
     const {
         writeContract,
         isPending,
@@ -47,42 +47,39 @@ export function useGameContract() {
 
     // Watch for transaction state changes and handle user rejections
     useEffect(() => {
-        // Early return if no transaction is happening
         if (!isPending && !isError && !isSuccess) return;
-        if (isSuccess && pendingPromiseResolvers) {
+
+        if (isSuccess && pendingPromiseResolversRef.current) {
             console.log("[INFO] Transaction succeeded:", transactionData);
             setIsTransactionPending(false);
-            pendingPromiseResolvers.resolve(transactionData);
-            setPendingPromiseResolvers(null);
+            pendingPromiseResolversRef.current.resolve(transactionData);
+            pendingPromiseResolversRef.current = null;
+            if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current);
         }
 
         if (isError) {
             console.warn("[WARN] Transaction failed:", transactionError);
             setIsTransactionPending(false);
 
-            // Check if error is user rejection
+            // Handle user rejection
             const errorMessage = transactionError?.message || "";
             const isUserRejection =
                 errorMessage.includes("User rejected") ||
-                errorMessage.includes("user rejected") ||
                 errorMessage.includes("rejected the request");
 
             if (isUserRejection) {
                 console.log("[INFO] User rejected transaction in wallet");
             }
 
-            // Only attempt to reject the promise if pendingPromiseResolvers exists
-            if (pendingPromiseResolvers) {
+            if (pendingPromiseResolversRef.current) {
                 if (isUserRejection) {
-                    // pendingPromiseResolvers.reject(new Error("User rejected the transaction"));
-                    console.log("rejected tx");
+                    console.log("[INFO] Transaction was rejected by user.");
                 } else {
-                    pendingPromiseResolvers.reject(transactionError);
+                    pendingPromiseResolversRef.current.reject(transactionError);
                 }
-                setPendingPromiseResolvers(null);
+                pendingPromiseResolversRef.current = null;
             }
 
-            // Always reset the contract state
             resetWriteContract();
         }
     }, [
@@ -90,28 +87,23 @@ export function useGameContract() {
         isError,
         transactionData,
         transactionError,
-        pendingPromiseResolvers,
         resetWriteContract,
     ]);
 
+    // Read contract function
     const usePlayerLatestSession = useReadContract({
         address: SPACE_STATION_CONTRACT_ADDRESS,
         abi: SpaceStationABI,
         functionName: "getPlayerLatestSession",
         args: [address as `0x${string}`],
-        query: {
-            enabled: false, // disable the query in onload
-        },
+        query: { enabled: false },
     });
 
     const getPlayerLatestSession = async () => {
         try {
             const { data } = await usePlayerLatestSession.refetch();
             if (data) {
-                console.log(
-                    "[INFO] Latest user session number: ",
-                    Number(data)
-                );
+                console.log("[INFO] Latest user session number:", Number(data));
                 setPlayerLatestSession(Number(data));
                 return Number(data);
             }
@@ -121,11 +113,12 @@ export function useGameContract() {
         }
     };
 
-    const startGameSession = () => {
+    // Function to start a game session
+    const startGameSession = useCallback(() => {
         return new Promise((resolve, reject) => {
             try {
-                // Store the promise resolvers for use when transaction completes
-                setPendingPromiseResolvers({ resolve, reject });
+                // Store promise resolvers in ref
+                pendingPromiseResolversRef.current = { resolve, reject };
                 setIsTransactionPending(true);
 
                 // Prepare the transaction
@@ -138,87 +131,77 @@ export function useGameContract() {
                     account: address as `0x${string}`,
                 });
 
-                // Add a timeout
-                const timeoutId = setTimeout(() => {
+                // Set timeout for the transaction
+                timeoutIdRef.current = setTimeout(() => {
                     if (isTransactionPending) {
-                        setIsTransactionPending(false);
-                        setPendingPromiseResolvers(null);
-                        resetWriteContract();
                         console.error(
                             "[ERROR] Game session transaction timed out"
                         );
+                        setIsTransactionPending(false);
+                        pendingPromiseResolversRef.current = null;
+                        resetWriteContract();
                         reject(new Error("Transaction timed out"));
                     }
-                }, 120000); // 2 minutes timeout
-
-                // Clear timeout on unmount
-                return () => clearTimeout(timeoutId);
+                }, 120000);
             } catch (error) {
                 setIsTransactionPending(false);
-                setPendingPromiseResolvers(null);
+                pendingPromiseResolversRef.current = null;
                 console.error("[ERROR] Error initiating game session:", error);
                 reject(error);
             }
         });
-    };
+    }, [writeContract, resetWriteContract, isTransactionPending]);
 
-    const completeGameSession = (sessionId: number) => {
-        return new Promise((resolve, reject) => {
-            try {
-                // Reset any previous state
-                resetWriteContract();
+    // Function to complete a game session
+    const completeGameSession = useCallback(
+        (sessionId: number) => {
+            return new Promise((resolve, reject) => {
+                try {
+                    resetWriteContract();
 
-                // Store the promise resolvers for use when transaction completes
-                setPendingPromiseResolvers({ resolve, reject });
-                setIsTransactionPending(true);
+                    pendingPromiseResolversRef.current = { resolve, reject };
+                    setIsTransactionPending(true);
 
-                // Prepare the transaction
-                writeContract({
-                    address: SPACE_STATION_CONTRACT_ADDRESS,
-                    abi: SpaceStationABI,
-                    functionName: "completeSession",
-                    args: [sessionId],
-                    chain: game7Testnet,
-                    account: address as `0x${string}`,
-                });
+                    writeContract({
+                        address: SPACE_STATION_CONTRACT_ADDRESS,
+                        abi: SpaceStationABI,
+                        functionName: "completeSession",
+                        args: [sessionId],
+                        chain: game7Testnet,
+                        account: address as `0x${string}`,
+                    });
 
-                // Add a timeout
-                const timeoutId = setTimeout(() => {
-                    if (isTransactionPending) {
-                        setIsTransactionPending(false);
-                        setPendingPromiseResolvers(null);
-                        resetWriteContract();
-                        console.error(
-                            "[ERROR] Game session completion timed out"
-                        );
-                        reject(new Error("Transaction timed out"));
+                    timeoutIdRef.current = setTimeout(() => {
+                        if (isTransactionPending) {
+                            console.error(
+                                "[ERROR] Game session completion timed out"
+                            );
+                            setIsTransactionPending(false);
+                            pendingPromiseResolversRef.current = null;
+                            resetWriteContract();
+                            reject(new Error("Transaction timed out"));
+                        }
+                    }, 120000);
+                } catch (error: any) {
+                    setIsTransactionPending(false);
+                    pendingPromiseResolversRef.current = null;
+                    resetWriteContract();
+
+                    console.error(
+                        "[ERROR] Error completing game session:",
+                        error
+                    );
+
+                    if (error?.message?.includes("User rejected")) {
+                        console.log("rejected tx");
+                    } else {
+                        reject(error);
                     }
-                }, 120000); // 2 minutes timeout
-
-                // Return a cleanup function
-                return () => clearTimeout(timeoutId);
-            } catch (error: any) {
-                setIsTransactionPending(false);
-                setPendingPromiseResolvers(null);
-                resetWriteContract();
-
-                // Log and format the error
-                console.error("[ERROR] Error completing game session:", error);
-
-                // Check if it's a user rejection
-                if (
-                    error?.message?.includes("User rejected") ||
-                    error?.message?.includes("user rejected") ||
-                    error?.message?.includes("rejected the request")
-                ) {
-                    console.log("rejected tx");
-                    // reject(new Error("User rejected the transaction"));
-                } else {
-                    reject(error);
                 }
-            }
-        });
-    };
+            });
+        },
+        [writeContract, resetWriteContract, isTransactionPending]
+    );
 
     return {
         startGameSession,
@@ -228,5 +211,6 @@ export function useGameContract() {
         address,
         isTransactionPending,
         playerLatestSession,
+        setPlayerLatestSession,
     };
 }
