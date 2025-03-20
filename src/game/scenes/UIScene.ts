@@ -5,6 +5,7 @@ import {
     GAME_DEFENDER_HEAVY_SOLDER,
     GAME_DEFENDER_SOLDER,
     GAME_DEFENDER_TURRET_LASER,
+    GAME_WAVES,
 } from "../../utils/settings";
 import { GameScene } from "./GameScene";
 
@@ -36,7 +37,8 @@ export class UIScene extends Phaser.Scene {
 
     init() {
         // UI state
-        this.credits = window.gameSettings.credits;
+        this.credits =
+            GAME_WAVES[window.gameSettings.waveCount - 1].minStartCredits;
         this.health = window.gameSettings.health;
         this.wave = window.gameSettings.waveCount;
         this.selectedTower = null;
@@ -246,11 +248,9 @@ export class UIScene extends Phaser.Scene {
     }
 
     createWaveStartButton() {
-        // Button position
         const buttonX = this.cameras.main.width - 150;
         const buttonY = this.cameras.main.height - 45;
 
-        // Create button background
         const startWaveButton = this.add.rectangle(
             buttonX,
             buttonY,
@@ -261,7 +261,6 @@ export class UIScene extends Phaser.Scene {
         startWaveButton.setStrokeStyle(2, 0xffffff);
         startWaveButton.setInteractive({ useHandCursor: true });
 
-        // Button text
         const buttonText = this.add
             .text(buttonX, buttonY, "Start Wave", {
                 font: "18px JetBrains Mono",
@@ -269,19 +268,33 @@ export class UIScene extends Phaser.Scene {
             })
             .setOrigin(0.5);
 
-        // Handle button click
         startWaveButton.on("pointerdown", () => {
             const gameScene = this.scene.get("GameScene") as GameScene;
 
             if (!gameScene.waveInProgress) {
-                gameScene.waveStartNext(); // Start the next wave
-                this.toggleWaveButton(false); // Disable button while wave is active
+                console.log("[INFO] Starting wave", gameScene.waveCurrent);
+                gameScene.waveStartNext();
+                this.toggleWaveButton(false);
             }
         });
 
         // Store references for enabling/disabling later
         this.waveStartButton = startWaveButton;
         this.waveStartButtonText = buttonText;
+
+        // Listen for wave updates from GameScene
+        this.scene.get("GameScene").events.on("updateUI", (data: any) => {
+            if (data.wave !== undefined) {
+                console.log("[INFO] UI Scene updated with wave", data.wave);
+                this.wave = data.wave; // Keep UI wave in sync
+                this.waveText.setText(`Wave: ${data.wave}`);
+            }
+
+            // If wave is complete, enable the button for next wave
+            this.scene.get("GameScene").events.on("waveComplete", () => {
+                this.toggleWaveButton(true);
+            });
+        });
     }
 
     // Enable/Disable the wave start button
@@ -380,24 +393,39 @@ export class UIScene extends Phaser.Scene {
 
             if (!defender) return; // Safety check
 
-            // Update color based on affordability
+            // Remove interactivity before reapplying
+            button.disableInteractive();
+
             if (this.credits >= defender.cost) {
                 button.setStrokeStyle(2, 0x00aa00); // Green (affordable)
                 costText.setColor("#ffff00");
+
+                // Re-enable interactivity
                 button.setInteractive({ useHandCursor: true });
+
+                // Ensure click event is still bound (Phaser might remove it)
+                button.off("pointerdown"); // Remove previous event to prevent stacking
+                button.on("pointerdown", () => {
+                    this.selectTower(defenderKey);
+                    this.towerButtons.forEach((b) =>
+                        b.setStrokeStyle(2, 0x666666)
+                    );
+                    button.setStrokeStyle(2, 0x00aa00); // Selected button
+                });
             } else {
                 button.setStrokeStyle(2, 0x666666); // Grey (not enough credits)
                 costText.setColor("#ff6666");
-                button.disableInteractive();
+                button.disableInteractive(); // Ensure it stays disabled
             }
         });
     }
 
     selectTower(defender: string) {
-        this.selectedTower = defender;
-
         // Tell game scene to start placement
         const gameScene = this.scene.get("GameScene") as GameScene;
+        console.log(
+            `[DEBUG] UI: ${this.credits}, ${this.defenders[defender].cost}`
+        );
         gameScene.towerStartPlacement(defender);
     }
 

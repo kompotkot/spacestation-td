@@ -25,6 +25,7 @@ export function useGameContract() {
     const [playerLatestSession, setPlayerLatestSession] = useState<
         number | null
     >(null);
+    const [availableWave, setAvailableWave] = useState<number>(1);
     const [isTransactionPending, setIsTransactionPending] = useState(false);
 
     // Refs to store resolvers and timeout IDs (prevents async state issues)
@@ -212,5 +213,7 @@ export function useGameContract() {
         isTransactionPending,
         playerLatestSession,
         setPlayerLatestSession,
+        availableWave,
+        setAvailableWave,
     };
 }

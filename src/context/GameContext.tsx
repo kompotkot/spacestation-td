@@ -19,6 +19,9 @@ interface GameContextType {
     address: string | null;
     playerLatestSession: number | null;
     isTransactionPending: boolean;
+    availableWave: number;
+    selectedWave: number;
+    setSelectedWave: (number: number | null) => void;
 }
 
 const GameContext = createContext<GameContextType>({
@@ -28,6 +31,9 @@ const GameContext = createContext<GameContextType>({
     address: null,
     playerLatestSession: null,
     isTransactionPending: false,
+    availableWave: 1,
+    selectedWave: 1,
+    setSelectedWave: (wave: number) => {},
 });
 
 export const useGame = () => useContext(GameContext);
@@ -39,12 +45,16 @@ interface GameProviderProps {
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const [gameInstance, setGameInstance] = useState<any | null>(null);
 
+    const [selectedWave, setSelectedWave] = useState(1);
+
     const { address, isConnected } = useAppKitAccount();
     const gameContract = useGameContract();
     const {
         isTransactionPending,
         playerLatestSession,
         setPlayerLatestSession,
+        availableWave,
+        setAvailableWave,
     } = gameContract;
 
     const destroyGame = () => {
@@ -60,10 +70,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         const loadContractData = async () => {
             const data = await gameContract.getPlayerLatestSession();
             setPlayerLatestSession(Number(data));
+
+            setAvailableWave(3);
         };
 
         loadContractData();
     }, [isConnected]);
+
+    useEffect(() => {
+        if (window.gameSettings) {
+            window.gameSettings.waveCount = selectedWave;
+        }
+    }, [selectedWave]);
 
     useEffect(() => {
         if (!window.gameContract) {
@@ -81,9 +99,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         if (!window.gameSettings) {
             window.gameSettings = {
                 gridSize: 128,
-                credits: 25,
                 health: 100,
-                waveCount: 1,
+                waveCount: selectedWave,
                 enemyHealth: 100,
                 enemySpeed: 100,
                 difficultyModifier: 1.2,
@@ -154,6 +171,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 address,
                 playerLatestSession,
                 isTransactionPending,
+                availableWave,
+                selectedWave,
+                setSelectedWave,
             }}
         >
             {children}

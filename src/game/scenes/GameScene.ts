@@ -56,6 +56,8 @@ export class GameScene extends Phaser.Scene {
     towerPreview: Phaser.GameObjects.Image;
     defenders: Record<string, Defender>;
 
+    credits: number;
+
     rangeIndicator: any;
 
     // gameMusic: Phaser.Sound.BaseSound;
@@ -84,7 +86,7 @@ export class GameScene extends Phaser.Scene {
         this.enemyGroup = this.add.group();
 
         this.waves = [];
-        this.waveCurrent = 0;
+        this.waveCurrent = window.gameSettings.waveCount;
         this.waveInProgress = false;
         this.wavePendingStacks = 0;
 
@@ -95,6 +97,9 @@ export class GameScene extends Phaser.Scene {
         this.towerHoveredLocation = null;
         this.towerSelected = null;
         this.towerPlacing = false;
+
+        this.credits =
+            GAME_WAVES[window.gameSettings.waveCount - 1].minStartCredits;
 
         // Define specific tile locations
         this.exitLocations = [
@@ -443,63 +448,62 @@ export class GameScene extends Phaser.Scene {
     }
 
     waveStartNext() {
-        if (this.waveCurrent >= this.waves.length) {
+        // Important: No increment here, we use the current value
+        if (this.waveCurrent > this.waves.length) {
             console.log("[INFO] All waves completed!");
             this.gameOver();
             return;
         }
 
         this.waveInProgress = true;
-        this.wavePendingStacks = 0; // Track enemy spawns that are scheduled
+        this.wavePendingStacks = 0; // Track enemy spawns
 
-        const wave = this.waves[this.waveCurrent];
+        // Access waves array with current wave index (zero-based)
+        const waveIndex = this.waveCurrent - 1;
+        const wave = this.waves[waveIndex];
 
-        // Flatten enemy spawns by filtering stacks for active paths
         wave.stacks
             .filter((stack) => this.pathsActive.has(stack.pathId))
             .forEach((stack) => {
                 for (let i = 0; i < stack.count; i++) {
                     const spawnDelay = i * stack.delay + stack.stackDelay;
 
-                    this.wavePendingStacks++; // Track that an enemy will be spawned
+                    this.wavePendingStacks++; // Track enemy spawn
 
                     this.time.delayedCall(spawnDelay, () => {
                         this.enemySpawn(stack.enemy, stack.pathId);
-                        this.wavePendingStacks--; // Decrease once actually spawned
-                        this.waveCheckComplete(); // Check if wave is done
+                        this.wavePendingStacks--;
+                        this.waveCheckComplete();
                     });
                 }
             });
 
-        this.events.emit("updateUI", { wave: this.waveCurrent + 1 });
+        // Update UI with current wave
+        this.events.emit("updateUI", { wave: this.waveCurrent });
 
-        this.waveCurrent++;
+        console.log("[INFO] Wave", this.waveCurrent, "started");
     }
 
     waveComplete() {
-        if (!this.waveInProgress) return; // Prevent multiple calls
-
+        console.log("[INFO] Wave", this.waveCurrent, "completed!");
         this.waveInProgress = false;
 
         // Award credits for completing the wave
-        if (
-            this.waveCurrent - 1 >= 0 &&
-            this.waveCurrent - 1 < this.waves.length
-        ) {
-            const waveReward = this.waves[this.waveCurrent - 1].reward;
-            window.gameSettings.credits += waveReward;
+        const waveIndex = this.waveCurrent - 1;
+        if (waveIndex >= 0 && waveIndex < this.waves.length) {
+            const waveReward = this.waves[waveIndex].reward;
+            this.credits += waveReward;
         }
 
+        // Increment to next wave
+        this.waveCurrent++;
+        window.gameSettings.waveCount = this.waveCurrent; // Keep game settings in sync
+
         // Update UI
-        this.events.emit("updateUI", { credits: window.gameSettings.credits });
-
-        // Prepare next wave
-        window.gameSettings.waveCount++;
-        window.gameSettings.enemyHealth *=
-            window.gameSettings.difficultyModifier;
-        window.gameSettings.enemySpeed *=
-            window.gameSettings.difficultyModifier;
-
+        this.events.emit("updateUI", {
+            credits: this.credits,
+            wave: this.waveCurrent,
+        });
         this.events.emit("waveComplete");
     }
 
@@ -535,17 +539,6 @@ export class GameScene extends Phaser.Scene {
         enemy.setDepth(10); // Set depth to appear above path and bases
 
         enemy.play(`${sprite}_walk`);
-
-        // Apply difficulty modifier if needed
-        if (
-            window.gameSettings.difficultyModifier &&
-            window.gameSettings.waveCount
-        ) {
-            health *= Math.pow(
-                window.gameSettings.difficultyModifier,
-                window.gameSettings.waveCount - 1
-            );
-        }
 
         // Setup enemy properties
         enemy.setData("name", enemyData.name);
@@ -720,8 +713,7 @@ export class GameScene extends Phaser.Scene {
 
             // Check if player has enough credits
             const canAfford =
-                window.gameSettings.credits >=
-                this.defenders[this.towerSelected].cost;
+                this.credits >= this.defenders[this.towerSelected].cost;
 
             // Change tint based on affordability
             this.towerPreview.setTint(canAfford ? 0xffffff : 0xff6666);
@@ -765,7 +757,7 @@ export class GameScene extends Phaser.Scene {
 
         // Check if player has enough credits
         const towerCost = this.defenders[this.towerSelected].cost;
-        if (window.gameSettings.credits < towerCost) {
+        if (this.credits < towerCost) {
             console.log("[INFO] Not enough credits to place tower");
             // Optional: Show notification to player
             this.events.emit("showNotification", "Not enough credits!");
@@ -829,11 +821,11 @@ export class GameScene extends Phaser.Scene {
         this.towers.push(tower);
 
         // Subtract the cost from player's credits
-        window.gameSettings.credits -= this.defenders[this.towerSelected].cost;
+        this.credits -= this.defenders[this.towerSelected].cost;
 
         // Update UI
         this.events.emit("updateUI", {
-            credits: window.gameSettings.credits,
+            credits: this.credits,
         });
 
         // Remove this location from available locations
@@ -857,6 +849,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     towerStartPlacement(defender) {
+        console.log(`[DEBUG] Game: Tower placement`);
         // Create preview image if it doesn't exist
         if (!this.towerPreview) {
             this.towerPreview = this.add.image(
@@ -1138,11 +1131,11 @@ export class GameScene extends Phaser.Scene {
         // Check if enemy defeated
         if (newHealth <= 0) {
             // Award credits
-            window.gameSettings.credits += enemy.getData("reward");
+            this.credits += enemy.getData("reward");
 
             // Update UI
             this.events.emit("updateUI", {
-                credits: window.gameSettings.credits,
+                credits: this.credits,
             });
 
             // Remove enemy

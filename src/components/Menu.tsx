@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 import { useGame } from "../context/GameContext";
 import styles from "../styles/Menu.module.css";
+import { GAME_WAVES } from "../utils/settings";
 
 interface MenuProps {
     onStartGame: () => void;
@@ -10,7 +11,14 @@ interface MenuProps {
 const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
     const [loading, setLoading] = useState(false);
 
-    const { address, playerLatestSession, isTransactionPending } = useGame();
+    const {
+        address,
+        playerLatestSession,
+        isTransactionPending,
+        availableWave,
+        selectedWave,
+        setSelectedWave,
+    } = useGame();
 
     const handleStartGame = async () => {
         console.log("[INFO] Starting game process...");
@@ -86,6 +94,60 @@ const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
                         : "None"}
                 </p>
             </div>
+
+            {/* Wave selection dropdown */}
+            <label
+                style={{
+                    color: "#ffffff",
+                    fontSize: "18px",
+                    marginBottom: "10px",
+                }}
+            >
+                Select Starting Wave:
+            </label>
+            <select
+                value={selectedWave}
+                onChange={(e) => setSelectedWave(Number(e.target.value))}
+                style={{
+                    width: "240px",
+                    padding: "10px",
+                    fontSize: "18px",
+                    borderRadius: "4px",
+                    border: "1px solid #0099ff",
+                    background: "transparent", // Transparent background
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    marginBottom: "20px",
+                    appearance: "none", // Remove default dropdown styling
+                    outline: "none",
+                }}
+            >
+                {GAME_WAVES.map((_, index) => {
+                    const waveNumber = index + 1;
+                    return (
+                        <option
+                            key={index}
+                            value={waveNumber}
+                            disabled={waveNumber > availableWave} // Disable if wave is above availableWave
+                            style={{
+                                background: "#222222", // Background color inside dropdown
+                                color:
+                                    waveNumber > availableWave
+                                        ? "#888888"
+                                        : "#ffffff", // Grey out unavailable options
+                                cursor:
+                                    waveNumber > availableWave
+                                        ? "not-allowed"
+                                        : "pointer",
+                            }}
+                        >
+                            Wave {waveNumber}{" "}
+                            {waveNumber > availableWave ? "(Locked)" : ""}
+                        </option>
+                    );
+                })}
+            </select>
 
             <button
                 onClick={handleStartGame}

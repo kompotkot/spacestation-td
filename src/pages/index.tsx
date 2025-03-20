@@ -55,6 +55,7 @@ const Index = () => {
 
     // Function to start the game from the menu
     const handleStartGame = () => {
+        console.log(`[INFO] Starting wave`);
         setGameStarted(true);
         setShowMenu(false);
     };

@@ -1,6 +1,5 @@
 export interface GameSettings {
     gridSize: number;
-    credits: number;
     health: number;
     waveCount: number;
     enemyHealth: number;

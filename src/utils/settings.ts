@@ -58,7 +58,7 @@ export const GAME_ENEMY_PIRATE: Enemy = {
 
     name: "pirate",
     reward: 10,
-    health: 100,
+    health: 200,
     speed: 100,
 
     sprite: "enemy_pirate",
@@ -69,7 +69,7 @@ export const GAME_ENEMY_MONSTER: Enemy = {
 
     name: "monster",
     reward: 20,
-    health: 200,
+    health: 1000,
     speed: 50,
 
     sprite: "enemy_monster",
@@ -116,7 +116,7 @@ export const GAME_WAVES: Wave[] = [
     // Wave 3
     {
         reward: 25,
-        minStartCredits: 25,
+        minStartCredits: 105,
 
         stacks: [
             {
@@ -152,7 +152,7 @@ export const GAME_WAVES: Wave[] = [
     // Wave 4
     {
         reward: 100,
-        minStartCredits: 25,
+        minStartCredits: 250,
 
         stacks: [
             {
