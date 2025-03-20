@@ -1,20 +1,15 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//   reactStrictMode: true,
-//   output: 'export',
-// }
-
-// module.exports = nextConfig
-
-
+/** @type {import('next').NextConfig} */
 module.exports = {
-  webpack: (config) => {
-    // This allows Phaser to be used client-side only
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-    };
+    reactStrictMode: true,
+    output: "export", // Enables static export mode for Next.js
 
-    return config;
-  },
+    webpack: (config) => {
+        // This allows Phaser to be used client-side only
+        config.resolve.fallback = {
+            ...config.resolve.fallback,
+            fs: false,
+        };
+
+        return config;
+    },
 };

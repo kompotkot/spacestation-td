@@ -200,9 +200,9 @@ const Menu: React.FC<MenuProps> = ({ onStartGame }) => {
                 }}
             >
                 <p>
-                    Click on the station floor to place defenses. Protect your
-                    station from waves of enemies. Don't let enemies reach the
-                    exit!
+                    Press the ground to deploy defensive fortifications. Defend
+                    your base against enemy assaults. Keep the enemy from
+                    reaching the exit!
                 </p>
             </div>
         </div>
