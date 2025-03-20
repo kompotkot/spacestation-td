@@ -72,7 +72,7 @@ export const GAME_ENEMY_MONSTER: Enemy = {
 
     name: "monster",
     reward: 20,
-    health: 700,
+    health: 900,
     speed: 50,
 
     sprite: "enemy_monster",
@@ -172,17 +172,17 @@ export const GAME_WAVES: Wave[] = [
         minStartCredits: 250,
 
         stacks: [
+            // {
+            //     enemy: GAME_ENEMY_PIRATE,
+            //     count: 3,
+            //     delay: 2000,
+            //     pathId: 2,
+            //     stackDelay: 0,
+            // },
             {
-                enemy: GAME_ENEMY_PIRATE,
-                count: 3,
-                delay: 2000,
-                pathId: 2,
-                stackDelay: 0,
-            },
-            {
-                enemy: GAME_ENEMY_MONSTER,
+                enemy: GAME_ENEMY_ALIEN,
                 count: 1,
-                delay: 5000,
+                delay: 0,
                 pathId: 1,
                 stackDelay: 0,
             },

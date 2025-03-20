@@ -1150,9 +1150,7 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    gameOver() {
-        console.log("[INFO] Game Over");
-
+    gameStop() {
         // Stop gameplay
         // Pause the physics - this should stop physics bodies
         this.physics.pause();
@@ -1174,6 +1172,64 @@ export class GameScene extends Phaser.Scene {
         });
 
         this.input.off("pointerdown");
+    }
+
+    gameComplete() {
+        console.log("[INFO] Game complete");
+
+        this.gameStop();
+
+        // Show game complete message
+        const gameOverText = this.add.text(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            "GAME COMPLETE",
+            {
+                font: "bold 60px JetBrains Mono",
+                color: "#027a48",
+                stroke: "#000000",
+                strokeThickness: 6,
+            }
+        );
+        gameOverText.setOrigin(0.5);
+        gameOverText.setDepth(10);
+
+        // Return to menu button
+        const menuButton = this.add.text(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2 + 80,
+            "Return to Menu",
+            {
+                font: "bold 30px JetBrains Mono",
+                color: "#ffffff",
+                backgroundColor: "#027a48",
+                padding: {
+                    left: 20,
+                    right: 20,
+                    top: 10,
+                    bottom: 10,
+                },
+            }
+        );
+        menuButton.setOrigin(0.5);
+        menuButton.setInteractive({ useHandCursor: true });
+        menuButton.on("pointerdown", () => {
+            const onGameOver = this.game.registry.get("onGameOver");
+
+            // Check if the callback exists and call it
+            if (typeof onGameOver === "function") {
+                onGameOver(this.wavesFinished);
+            }
+
+            this.scene.stop("UIScene");
+            this.scene.stop(); // Stop the current scene
+        });
+    }
+
+    gameOver() {
+        console.log("[INFO] Game Over");
+
+        this.gameStop();
 
         // Show game over message
         const gameOverText = this.add.text(
@@ -1220,9 +1276,6 @@ export class GameScene extends Phaser.Scene {
             this.scene.stop("UIScene");
             this.scene.stop(); // Stop the current scene
         });
-
-        // Notify UI
-        this.events.emit("gameOver");
     }
 
     // FIX: Implemented tower shooting in update

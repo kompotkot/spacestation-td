@@ -62,7 +62,7 @@ export class UIScene extends Phaser.Scene {
             heavy_solder: GAME_DEFENDER_HEAVY_SOLDER,
         };
 
-        this.volumeLevel = 0.8; // Default volume level (80%)
+        this.volumeLevel = 0.8;
         this.isMuted = false;
         this.previousVolumeLevel = 0.8;
     }
@@ -147,7 +147,7 @@ export class UIScene extends Phaser.Scene {
         // Add volume icon
         this.volumeIcon = this.add
             .image(startX, y, "icon_volume")
-            .setScale(0.5)
+            .setScale(0.6)
             .setInteractive()
             .on("pointerdown", this.toggleMute, this);
 
@@ -189,7 +189,7 @@ export class UIScene extends Phaser.Scene {
             // Set volume to 0
             this.setVolume(0);
             // Change icon appearance to show muted state
-            this.volumeIcon.setTint(0xff0000);
+            this.volumeIcon.setTint(0x666666);
         } else {
             // Restore previous volume level
             this.setVolume(this.previousVolumeLevel);
@@ -415,8 +415,10 @@ export class UIScene extends Phaser.Scene {
     }
 
     listenToEvents() {
+        const gameScene = this.scene.get("GameScene") as GameScene;
+
         // Listen for UI updates from game scene
-        this.scene.get("GameScene").events.on("updateUI", (data: any) => {
+        gameScene.events.on("updateUI", (data: any) => {
             if (data.credits !== undefined) {
                 this.credits = data.credits;
                 this.creditsText.setText(`Credits: ${this.credits}`);
@@ -445,7 +447,12 @@ export class UIScene extends Phaser.Scene {
             }
         });
 
-        this.scene.get("GameScene").events.on("waveComplete", () => {
+        gameScene.events.on("waveComplete", () => {
+            if (this.wave > GAME_WAVES.length) {
+                gameScene.gameComplete();
+                return;
+            }
+
             // Show wave complete message
             const completeText = this.add.text(
                 this.cameras.main.width / 2,
@@ -471,7 +478,7 @@ export class UIScene extends Phaser.Scene {
         });
 
         // Listen for tower selection events
-        this.scene.get("GameScene").events.on("towerSelected", (data: any) => {
+        gameScene.events.on("towerSelected", (data: any) => {
             // Show tower info panel
             this.towerInfoPanel.setVisible(true);
 
@@ -488,7 +495,7 @@ export class UIScene extends Phaser.Scene {
         });
 
         // Listen for tower deselection
-        this.scene.get("GameScene").events.on("towerDeselected", () => {
+        gameScene.events.on("towerDeselected", () => {
             this.towerInfoPanel.setVisible(false);
         });
     }

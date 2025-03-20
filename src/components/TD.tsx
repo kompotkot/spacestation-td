@@ -24,6 +24,8 @@ const TD: React.FC<TDProps> = ({
     // Game Phaser initializer
     // Import libraries only on the client side
     const GamePhaserInit = async () => {
+        console.log("[INFO] Game Phaser init");
+
         try {
             // Dynamic import of Phaser
             const Phaser = (await import("phaser")).default;
