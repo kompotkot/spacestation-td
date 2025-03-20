@@ -946,7 +946,10 @@ export class GameScene extends Phaser.Scene {
     fireProjectile(tower, target) {
         // Get tower type
         const defender = tower.getData("defender");
-        const towerData = this.defenders[defender];
+
+        this.sound.play(this.defenders[defender].projectileSound, {
+            volume: 0.3,
+        });
 
         // Get positions
         const startX = tower.x;

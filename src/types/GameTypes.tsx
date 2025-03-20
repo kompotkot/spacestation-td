@@ -109,6 +109,7 @@ export interface Defender {
     fireRate: number;
     projectileSpeed: number;
     projectileSprite: string;
+    projectileSound: string;
 
     sprite: string;
 }

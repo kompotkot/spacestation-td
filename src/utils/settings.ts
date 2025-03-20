@@ -1,6 +1,6 @@
 import { Defender, Enemy, Wave } from "../types/GameTypes";
 
-export const GAME_DEFENDER_SOLDER = {
+export const GAME_DEFENDER_SOLDER: Defender = {
     id: 1,
 
     name: "Solder",
@@ -10,11 +10,12 @@ export const GAME_DEFENDER_SOLDER = {
     fireRate: 1000,
     projectileSpeed: 2000,
     projectileSprite: "bullet",
+    projectileSound: "sound_bullet_shot",
 
     sprite: "solder",
 };
 
-export const GAME_DEFENDER_TURRET_LASER = {
+export const GAME_DEFENDER_TURRET_LASER: Defender = {
     id: 2,
 
     name: "Turret Laser",
@@ -24,11 +25,12 @@ export const GAME_DEFENDER_TURRET_LASER = {
     fireRate: 200,
     projectileSpeed: 500,
     projectileSprite: "laser",
+    projectileSound: "sound_laser_shot",
 
     sprite: "turret_laser",
 };
 
-export const GAME_DEFENDER_HEAVY_SOLDER = {
+export const GAME_DEFENDER_HEAVY_SOLDER: Defender = {
     id: 3,
 
     name: "Heavy Solder",
@@ -38,6 +40,7 @@ export const GAME_DEFENDER_HEAVY_SOLDER = {
     fireRate: 2000,
     projectileSpeed: 200,
     projectileSprite: "missile",
+    projectileSound: "sound_missile_shot",
 
     sprite: "solder_heavy",
 };
@@ -58,7 +61,7 @@ export const GAME_ENEMY_PIRATE: Enemy = {
 
     name: "pirate",
     reward: 10,
-    health: 200,
+    health: 250,
     speed: 100,
 
     sprite: "enemy_pirate",
@@ -69,7 +72,7 @@ export const GAME_ENEMY_MONSTER: Enemy = {
 
     name: "monster",
     reward: 20,
-    health: 1000,
+    health: 700,
     speed: 50,
 
     sprite: "enemy_monster",
