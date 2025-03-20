@@ -31,6 +31,14 @@ export class UIScene extends Phaser.Scene {
 
     defenders: Record<string, Defender>;
 
+    volumeIcon: any;
+    volumeBarBg: any;
+    volumeLevel: any;
+    volumeBarFill: any;
+    volumeText: any;
+    isMuted: any;
+    previousVolumeLevel: any;
+
     constructor() {
         super("UIScene");
     }
@@ -53,6 +61,10 @@ export class UIScene extends Phaser.Scene {
             turret_laser: GAME_DEFENDER_TURRET_LASER,
             heavy_solder: GAME_DEFENDER_HEAVY_SOLDER,
         };
+
+        this.volumeLevel = 0.8; // Default volume level (80%)
+        this.isMuted = false;
+        this.previousVolumeLevel = 0.8;
     }
 
     create() {
@@ -127,6 +139,102 @@ export class UIScene extends Phaser.Scene {
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
+
+        // Add volume control to top UI panel
+        const y = 30; // Top panel y-position (same as other status displays)
+        const startX = 700; // Position after other status displays
+
+        // Add volume icon
+        this.volumeIcon = this.add
+            .image(startX, y, "icon_volume")
+            .setScale(0.5)
+            .setInteractive()
+            .on("pointerdown", this.toggleMute, this);
+
+        // Volume bar background
+        this.volumeBarBg = this.add
+            .rectangle(startX + 100, y, 150, 5, 0x666666)
+            .setOrigin(0.5);
+
+        // Volume bar fill
+        this.volumeBarFill = this.add
+            .rectangle(startX + 25, y, this.volumeLevel * 150, 5, 0xffffff)
+            .setOrigin(0, 0.5);
+
+        // Make volume bar interactive
+        this.volumeBarBg.setInteractive();
+        this.volumeBarBg.on("pointerdown", this.adjustVolume, this);
+        this.volumeBarBg.on("pointermove", (pointer) => {
+            if (pointer.isDown) {
+                this.adjustVolume(pointer);
+            }
+        });
+
+        // Add volume text indicator
+        this.volumeText = this.add
+            .text(startX + 180, y, `${Math.round(this.volumeLevel * 100)}%`, {
+                font: "16px JetBrains Mono",
+                color: "#ffffff",
+            })
+            .setOrigin(0, 0.5);
+    }
+
+    // Toggle mute function
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        if (this.isMuted) {
+            // Store the current volume level
+            this.previousVolumeLevel = this.volumeLevel;
+            // Set volume to 0
+            this.setVolume(0);
+            // Change icon appearance to show muted state
+            this.volumeIcon.setTint(0xff0000);
+        } else {
+            // Restore previous volume level
+            this.setVolume(this.previousVolumeLevel);
+            // Reset icon appearance
+            this.volumeIcon.clearTint();
+        }
+    }
+
+    // Adjust volume based on click/drag position
+    adjustVolume(pointer) {
+        // Calculate relative x position
+        const startX = this.volumeBarBg.x - this.volumeBarBg.width / 2;
+        const endX = startX + this.volumeBarBg.width;
+        const relativeX = Phaser.Math.Clamp(pointer.x, startX, endX);
+
+        // Calculate volume level (0-1)
+        const newVolume = (relativeX - startX) / this.volumeBarBg.width;
+
+        // Set the new volume
+        this.setVolume(newVolume);
+
+        // If we're adjusting volume, we're not muted anymore
+        if (newVolume > 0 && this.isMuted) {
+            this.isMuted = false;
+            this.volumeIcon.clearTint();
+        }
+    }
+
+    // Set volume level and update UI
+    setVolume(level) {
+        // Update volume level
+        this.volumeLevel = level;
+
+        // Update volume bar width
+        this.volumeBarFill.width = this.volumeLevel * this.volumeBarBg.width;
+
+        // Update volume text
+        this.volumeText.setText(`${Math.round(this.volumeLevel * 100)}%`);
+
+        // Update actual game sound volume
+        if (this.sound && this.sound.volume !== undefined) {
+            this.sound.volume = this.volumeLevel;
+        } else if (this.scene.manager.game.sound) {
+            this.scene.manager.game.sound.volume = this.volumeLevel;
+        }
     }
 
     createTowerSelectionButtons() {
