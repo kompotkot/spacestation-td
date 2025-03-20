@@ -172,17 +172,17 @@ export const GAME_WAVES: Wave[] = [
         minStartCredits: 250,
 
         stacks: [
-            // {
-            //     enemy: GAME_ENEMY_PIRATE,
-            //     count: 3,
-            //     delay: 2000,
-            //     pathId: 2,
-            //     stackDelay: 0,
-            // },
             {
-                enemy: GAME_ENEMY_ALIEN,
+                enemy: GAME_ENEMY_PIRATE,
+                count: 3,
+                delay: 2000,
+                pathId: 2,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
                 count: 1,
-                delay: 0,
+                delay: 5000,
                 pathId: 1,
                 stackDelay: 0,
             },
