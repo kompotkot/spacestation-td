@@ -72,7 +72,10 @@ const Index = () => {
             const gameContract = window.gameContract;
             const latestSession = await gameContract.getPlayerLatestSession();
 
-            await gameContract.completeGameSession(latestSession, finishedWaves);
+            await gameContract.completeGameSession(
+                latestSession,
+                finishedWaves
+            );
 
             console.log(
                 `[INFO] Transaction successful, completed session ${latestSession} with finished waves ${finishedWaves}`

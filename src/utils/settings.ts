@@ -4,7 +4,7 @@ export const GAME_DEFENDER_SOLDER: Defender = {
     id: 1,
 
     name: "Solder",
-    cost: 25,
+    cost: 50,
     damage: 20,
     range: 3,
     fireRate: 1000,
@@ -19,7 +19,7 @@ export const GAME_DEFENDER_TURRET_LASER: Defender = {
     id: 2,
 
     name: "Turret Laser",
-    cost: 50,
+    cost: 110,
     damage: 5,
     range: 2,
     fireRate: 200,
@@ -34,7 +34,7 @@ export const GAME_DEFENDER_HEAVY_SOLDER: Defender = {
     id: 3,
 
     name: "Heavy Solder",
-    cost: 75,
+    cost: 150,
     damage: 50,
     range: 5,
     fireRate: 2000,
@@ -81,8 +81,8 @@ export const GAME_ENEMY_MONSTER: Enemy = {
 export const GAME_WAVES: Wave[] = [
     // Wave 1
     {
-        reward: 5,
-        minStartCredits: 25,
+        reward: 20,
+        minStartCredits: 50,
 
         stacks: [
             {
@@ -96,13 +96,13 @@ export const GAME_WAVES: Wave[] = [
     },
     // Wave 2
     {
-        reward: 10,
-        minStartCredits: 55,
+        reward: 5,
+        minStartCredits: 100,
 
         stacks: [
             {
                 enemy: GAME_ENEMY_ALIEN,
-                count: 4,
+                count: 5,
                 delay: 2500,
                 pathId: 1,
                 stackDelay: 0,
@@ -112,7 +112,7 @@ export const GAME_WAVES: Wave[] = [
                 count: 4,
                 delay: 2500,
                 pathId: 2,
-                stackDelay: 6000,
+                stackDelay: 2000,
             },
             {
                 enemy: GAME_ENEMY_ALIEN,
@@ -132,23 +132,95 @@ export const GAME_WAVES: Wave[] = [
     },
     // Wave 3
     {
-        reward: 25,
-        minStartCredits: 105,
+        reward: 10,
+        minStartCredits: 120,
 
         stacks: [
             {
                 enemy: GAME_ENEMY_ALIEN,
-                count: 6,
+                count: 7,
                 delay: 2500,
                 pathId: 1,
                 stackDelay: 0,
             },
             {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 7,
+                delay: 2500,
+                pathId: 2,
+                stackDelay: 3000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 3,
+                delay: 1200,
+                pathId: 1,
+                stackDelay: 20000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 3,
+                delay: 1200,
+                pathId: 2,
+                stackDelay: 20000,
+            },
+        ],
+    },
+    // Wave 4
+    {
+        reward: 10,
+        minStartCredits: 150,
+
+        stacks: [
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 8,
+                delay: 2000,
+                pathId: 1,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 6,
+                delay: 2000,
+                pathId: 2,
+                stackDelay: 5000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 2,
+                delay: 5000,
+                pathId: 1,
+                stackDelay: 12000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 1,
+                delay: 5000,
+                pathId: 2,
+                stackDelay: 15000,
+            },
+        ],
+    },
+    // Wave 5
+    {
+        reward: 5,
+        minStartCredits: 105,
+
+        stacks: [
+            {
                 enemy: GAME_ENEMY_PIRATE,
                 count: 2,
                 delay: 6000,
-                pathId: 2,
+                pathId: 1,
                 stackDelay: 1000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 6,
+                delay: 2500,
+                pathId: 2,
+                stackDelay: 0,
             },
             {
                 enemy: GAME_ENEMY_ALIEN,
@@ -166,9 +238,52 @@ export const GAME_WAVES: Wave[] = [
             },
         ],
     },
-    // Wave 4
+    // Wave 6
     {
-        reward: 100,
+        reward: 15,
+        minStartCredits: 200,
+
+        stacks: [
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 10,
+                delay: 1800,
+                pathId: 1,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 8,
+                delay: 1800,
+                pathId: 2,
+                stackDelay: 4000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 3,
+                delay: 5000,
+                pathId: 1,
+                stackDelay: 8000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 2,
+                delay: 5000,
+                pathId: 2,
+                stackDelay: 12000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 6,
+                delay: 1200,
+                pathId: 1,
+                stackDelay: 25000,
+            },
+        ],
+    },
+    // Wave 7
+    {
+        reward: 10,
         minStartCredits: 250,
 
         stacks: [
@@ -185,6 +300,205 @@ export const GAME_WAVES: Wave[] = [
                 delay: 5000,
                 pathId: 1,
                 stackDelay: 0,
+            },
+        ],
+    },
+    // Wave 8
+    {
+        reward: 15,
+        minStartCredits: 350,
+
+        stacks: [
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 12,
+                delay: 1500,
+                pathId: 1,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 8,
+                delay: 1500,
+                pathId: 2,
+                stackDelay: 3000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 4,
+                delay: 4000,
+                pathId: 1,
+                stackDelay: 8000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 3,
+                delay: 4000,
+                pathId: 2,
+                stackDelay: 10000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 1,
+                delay: 7000,
+                pathId: 1,
+                stackDelay: 18000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 1,
+                delay: 7000,
+                pathId: 2,
+                stackDelay: 18000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 10,
+                delay: 800,
+                pathId: 1,
+                stackDelay: 30000,
+            },
+        ],
+    },
+    // Wave 9
+    {
+        reward: 20,
+        minStartCredits: 425,
+
+        stacks: [
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 15,
+                delay: 1200,
+                pathId: 1,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 12,
+                delay: 1200,
+                pathId: 2,
+                stackDelay: 2000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 5,
+                delay: 3500,
+                pathId: 1,
+                stackDelay: 10000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 4,
+                delay: 3500,
+                pathId: 2,
+                stackDelay: 12000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 2,
+                delay: 6000,
+                pathId: 1,
+                stackDelay: 22000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 1,
+                delay: 6000,
+                pathId: 2,
+                stackDelay: 22000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 8,
+                delay: 800,
+                pathId: 1,
+                stackDelay: 38000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 8,
+                delay: 800,
+                pathId: 2,
+                stackDelay: 38000,
+            },
+        ],
+    },
+    // Wave 10
+    {
+        reward: 30,
+        minStartCredits: 500,
+
+        stacks: [
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 18,
+                delay: 1000,
+                pathId: 1,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 18,
+                delay: 1000,
+                pathId: 2,
+                stackDelay: 0,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 6,
+                delay: 3000,
+                pathId: 1,
+                stackDelay: 10000,
+            },
+            {
+                enemy: GAME_ENEMY_PIRATE,
+                count: 6,
+                delay: 3000,
+                pathId: 2,
+                stackDelay: 10000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 2,
+                delay: 5000,
+                pathId: 1,
+                stackDelay: 25000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 2,
+                delay: 5000,
+                pathId: 2,
+                stackDelay: 25000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 1,
+                delay: 0,
+                pathId: 1,
+                stackDelay: 40000,
+            },
+            {
+                enemy: GAME_ENEMY_MONSTER,
+                count: 1,
+                delay: 0,
+                pathId: 2,
+                stackDelay: 40000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 20,
+                delay: 500,
+                pathId: 1,
+                stackDelay: 45000,
+            },
+            {
+                enemy: GAME_ENEMY_ALIEN,
+                count: 20,
+                delay: 500,
+                pathId: 2,
+                stackDelay: 45000,
             },
         ],
     },
