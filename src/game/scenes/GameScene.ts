@@ -57,6 +57,10 @@ export class GameScene extends Phaser.Scene {
     towerPreview: Phaser.GameObjects.Image;
     defenders: Record<string, Defender>;
 
+    selectedTower: any;
+    deleteButton: any;
+    deleteConfirmDialog: any;
+
     credits: number;
 
     rangeIndicator: any;
@@ -99,6 +103,10 @@ export class GameScene extends Phaser.Scene {
         this.towerHoveredLocation = null;
         this.towerSelected = null;
         this.towerPlacing = false;
+
+        this.selectedTower = null;
+        this.deleteButton = null;
+        this.deleteConfirmDialog = null;
 
         this.credits =
             GAME_WAVES[window.gameSettings.waveCount - 1].minStartCredits;
@@ -230,6 +238,149 @@ export class GameScene extends Phaser.Scene {
 
         // Setup mouse wheel for zooming
         this.input.on("wheel", this.handleMouseWheel, this);
+
+        // Add event listener for clicking on towers
+        this.input.on("gameobjectdown", this.onGameObjectDown, this);
+    }
+
+    onGameObjectDown(pointer, gameObject) {
+        // Check if the clicked object is a tower
+        if (this.towers.includes(gameObject)) {
+            // If this tower is already selected, deselect it
+            if (this.selectedTower === gameObject) {
+                this.deselectTower();
+            } else {
+                // Otherwise, select the new tower
+                this.selectTower(gameObject);
+            }
+        } else if (gameObject !== this.deleteButton && this.selectedTower) {
+            // If clicking elsewhere and not on delete button, deselect tower
+            this.deselectTower();
+        }
+    }
+
+    selectTower(tower) {
+        // Deselect previous tower if any
+        this.deselectTower();
+
+        // Set the new selected tower
+        this.selectedTower = tower;
+
+        // Highlight the selected tower
+        tower.setTint(0x88ff88);
+
+        // Show range indicator for this tower
+        const x = tower.x;
+        const y = tower.y;
+        const range = tower.getData("range");
+
+        this.rangeIndicator.setPosition(x, y);
+        this.rangeIndicator.setRadius(range * this.gridSize);
+        this.rangeIndicator.setVisible(true);
+
+        this.createDeleteButton(x, y);
+    }
+
+    deselectTower() {
+        if (this.selectedTower) {
+            // Remove tint
+            this.selectedTower.clearTint();
+
+            // Hide range indicator
+            this.rangeIndicator.setVisible(false);
+
+            // Destroy delete button if it exists
+            if (this.deleteButton) {
+                this.deleteButton.destroy();
+                this.deleteButton = null;
+            }
+
+            // Hide confirmation dialog if it exists
+            if (this.deleteConfirmDialog) {
+                this.deleteConfirmDialog.setVisible(false);
+                this.deleteConfirmDialog = null;
+            }
+
+            this.selectedTower = null;
+        }
+    }
+
+    createDeleteButton(x, y) {
+        // Create a delete button (red X) above the tower
+        this.deleteButton = this.add.image(x + 40, y - 50 * 0.8, "icon_x");
+
+        // Make the button interactive
+        this.deleteButton.setInteractive({ useHandCursor: true });
+        this.deleteButton.on(
+            "pointerdown",
+            () => {
+                this.deleteTower();
+                this.deselectTower();
+            },
+            this
+        );
+
+        // Add some visual feedback
+        this.deleteButton.on("pointerover", () => {
+            this.deleteButton.setScale(1.2);
+        });
+
+        this.deleteButton.on("pointerout", () => {
+            this.deleteButton.setScale(1.0);
+        });
+
+        // Set appropriate depth
+        this.deleteButton.setDepth(90);
+    }
+
+    deleteTower() {
+        if (!this.selectedTower) return;
+
+        // Get grid position
+        const gridX = this.selectedTower.getData("gridX");
+        const gridY = this.selectedTower.getData("gridY");
+
+        // Create new base at this location
+        const x = gridX * this.gridSize + this.gridSize / 2;
+        const y = gridY * this.gridSize + this.gridSize / 2;
+
+        // Create base sprite
+        const baseSprite = this.add.image(x, y, "tower_base");
+        baseSprite.setDepth(5);
+
+        // Create portal sprite with pulsing effect
+        const portalSprite = this.add.image(x, y, "tower_portal");
+        portalSprite.setDepth(6);
+
+        // Add pulsing animation
+        this.tweens.add({
+            targets: portalSprite,
+            alpha: { from: 1, to: 0.2 },
+            duration: 1000,
+            ease: "Sine.easeInOut",
+            yoyo: true,
+            repeat: -1,
+        });
+
+        // Add location back to available locations
+        this.towerAvailableLocations.push({
+            x: gridX,
+            y: gridY,
+            baseSprite,
+            portalSprite,
+        });
+
+        // Remove tower from the towers array
+        const index = this.towers.indexOf(this.selectedTower);
+        if (index > -1) {
+            this.towers.splice(index, 1);
+        }
+
+        // Destroy the tower game object
+        this.selectedTower.destroy();
+
+        // Clean up
+        this.deselectTower();
     }
 
     // Create map objects and layers
@@ -849,6 +1000,8 @@ export class GameScene extends Phaser.Scene {
         this.towerPlacing = false;
         this.towerSelected = null;
 
+        tower.setInteractive({ useHandCursor: true });
+
         return tower;
     }
 
@@ -1278,7 +1431,6 @@ export class GameScene extends Phaser.Scene {
         });
     }
 
-    // FIX: Implemented tower shooting in update
     update(time, delta) {
         // Handle keyboard control movements
         if (this.controls) {

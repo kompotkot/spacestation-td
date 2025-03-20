@@ -204,7 +204,7 @@ export const GAME_WAVES: Wave[] = [
     },
     // Wave 5
     {
-        reward: 5,
+        reward: 10,
         minStartCredits: 105,
 
         stacks: [
@@ -283,7 +283,7 @@ export const GAME_WAVES: Wave[] = [
     },
     // Wave 7
     {
-        reward: 10,
+        reward: 15,
         minStartCredits: 250,
 
         stacks: [
@@ -426,7 +426,7 @@ export const GAME_WAVES: Wave[] = [
     },
     // Wave 10
     {
-        reward: 30,
+        reward: 20,
         minStartCredits: 500,
 
         stacks: [

@@ -84,6 +84,7 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image("icon_health", "assets/ui/health.png");
         this.load.image("icon_wave", "assets/ui/wave.png");
         this.load.image("icon_volume", "assets/ui/volume.png");
+        this.load.image("icon_x", "assets/ui/x.png");
 
         this.load.audio("sound_bullet_shot", "assets/sounds/bullet-shot.mp3");
         this.load.audio("sound_laser_shot", "assets/sounds/laser-shot.mp3");
